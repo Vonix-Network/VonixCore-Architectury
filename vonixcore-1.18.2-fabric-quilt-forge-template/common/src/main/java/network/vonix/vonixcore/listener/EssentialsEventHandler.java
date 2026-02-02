@@ -1,6 +1,7 @@
 package network.vonix.vonixcore.listener;
 
 import dev.architectury.event.EventResult;
+import dev.architectury.event.events.common.ChatEvent;
 import dev.architectury.event.events.common.CommandRegistrationEvent;
 import dev.architectury.event.events.common.LifecycleEvent;
 import dev.architectury.event.events.common.PlayerEvent;
@@ -25,7 +26,7 @@ public class EssentialsEventHandler {
 
     public static void init() {
         // Register Commands
-        CommandRegistrationEvent.EVENT.register((dispatcher, selection) -> {
+        CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> {
             if (!EssentialsConfig.CONFIG.enabled.get()) {
                 return;
             }
@@ -61,9 +62,15 @@ public class EssentialsEventHandler {
             }
         });
 
-        /*
-        // Chat Formatting - TODO: Fix chat event for 1.18.2 Architectury API
+        // Chat Formatting
+        // On Fabric: Handled by mixin (ServerGamePacketListenerMixin) to prevent
+        // duplicates
+        // On Forge/NeoForge: Handled here via Architectury event
         ChatEvent.RECEIVED.register((player, component) -> {
+            if (network.vonix.vonixcore.platform.Platform.isFabric()) {
+                return EventResult.pass();
+            }
+
             if (!EssentialsConfig.CONFIG.enabled.get() || !EssentialsConfig.CONFIG.chatFormattingEnabled.get()) {
                 return EventResult.pass();
             }
@@ -71,19 +78,35 @@ public class EssentialsEventHandler {
             if (player instanceof ServerPlayer) {
                 ServerPlayer serverPlayer = (ServerPlayer) player;
                 String rawMessage = component.getString();
-                
+
                 // Format the message with prefix/suffix
                 Component formatted = ChatFormatter.formatChatMessage(serverPlayer, rawMessage);
 
                 // Manually broadcast the formatted message to all players
-                // Use broadcastMessage for 1.18.2
-                serverPlayer.server.getPlayerList().broadcastMessage(formatted, net.minecraft.network.chat.ChatType.SYSTEM, net.minecraft.Util.NIL_UUID);
-                
-                // Send to Discord
+                // 1.18.2: Use broadcastMessage(Component, ChatType, UUID)
+                serverPlayer.server.getPlayerList().broadcastMessage(formatted,
+                        net.minecraft.network.chat.ChatType.SYSTEM, net.minecraft.Util.NIL_UUID);
+
+                // Send to Discord (with optional prefix filtering)
                 try {
                     if (network.vonix.vonixcore.discord.DiscordManager.getInstance().isRunning()) {
-                        network.vonix.vonixcore.discord.DiscordManager.getInstance()
-                            .sendChatMessage(serverPlayer.getName().getString(), rawMessage, serverPlayer.getStringUUID());
+                        boolean shouldSendToDiscord = true;
+
+                        // Check if chat filter is enabled and message starts with filter prefix
+                        if (network.vonix.vonixcore.config.DiscordConfig.CONFIG.enableChatFilter.get()) {
+                            String filterPrefix = network.vonix.vonixcore.config.DiscordConfig.CONFIG.chatFilterPrefix
+                                    .get();
+                            if (filterPrefix != null && !filterPrefix.isEmpty()
+                                    && rawMessage.startsWith(filterPrefix)) {
+                                shouldSendToDiscord = false;
+                            }
+                        }
+
+                        if (shouldSendToDiscord) {
+                            network.vonix.vonixcore.discord.DiscordManager.getInstance()
+                                    .sendChatMessage(serverPlayer.getName().getString(), rawMessage,
+                                            serverPlayer.getStringUUID());
+                        }
                     }
                 } catch (Exception e) {
                     VonixCore.LOGGER.error("Failed to send chat to Discord", e);
@@ -95,7 +118,6 @@ public class EssentialsEventHandler {
 
             return EventResult.pass();
         });
-        */
 
         // Track player join for /seen and permission cache
         PlayerEvent.PLAYER_JOIN.register(player -> {
@@ -123,31 +145,5 @@ public class EssentialsEventHandler {
                 PermissionManager.getInstance().clearUserCache(serverPlayer.getUUID());
             }
         });
-    }
-
-    public static boolean onChat(ServerPlayer player, String rawMessage) {
-        if (!EssentialsConfig.CONFIG.enabled.get() || !EssentialsConfig.CONFIG.chatFormattingEnabled.get()) {
-            return false;
-        }
-
-        // Format the message with prefix/suffix
-        Component formatted = ChatFormatter.formatChatMessage(player, rawMessage);
-
-        // Manually broadcast the formatted message to all players
-        // Use broadcastMessage for 1.18.2
-        player.server.getPlayerList().broadcastMessage(formatted, net.minecraft.network.chat.ChatType.SYSTEM, net.minecraft.Util.NIL_UUID);
-        
-        // Send to Discord
-        try {
-            if (network.vonix.vonixcore.discord.DiscordManager.getInstance().isRunning()) {
-                network.vonix.vonixcore.discord.DiscordManager.getInstance()
-                    .sendChatMessage(player.getName().getString(), rawMessage, player.getStringUUID());
-            }
-        } catch (Exception e) {
-            VonixCore.LOGGER.error("Failed to send chat to Discord", e);
-        }
-
-        // Return true to cancel the original event
-        return true;
     }
 }

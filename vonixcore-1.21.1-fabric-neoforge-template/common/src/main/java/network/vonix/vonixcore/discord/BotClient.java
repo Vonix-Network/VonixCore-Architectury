@@ -29,21 +29,21 @@ public class BotClient {
         this.messageHandler = handler;
     }
 
-    public void connect(String token, String channelId) {
+    public CompletableFuture<Void> connect(String token, String channelId) {
         this.token = token;
         this.channelId = channelId;
-        connect();
+        return connect();
     }
 
-    private void connect() {
+    private CompletableFuture<Void> connect() {
         if (token == null || token.isEmpty() || token.equals("YOUR_BOT_TOKEN_HERE")) {
             VonixCore.LOGGER.warn("Bot token not configured.");
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         VonixCore.LOGGER.info("Connecting to Discord...");
 
-        new DiscordApiBuilder()
+        return new DiscordApiBuilder()
                 .setToken(token)
                 .setAllIntentsExcept(Intent.GUILD_PRESENCES, Intent.GUILD_MEMBERS)
                 .login()
@@ -61,13 +61,9 @@ public class BotClient {
         // Register Listeners
         api.addMessageCreateListener(event -> {
             if (messageHandler != null) {
-                // Basic filter: Check channel
-                if (channelId != null && !channelId.isEmpty()) {
-                    if (!event.getChannel().getIdAsString().equals(channelId)) return;
-                }
-                
                 // Ignore self
-                if (event.getMessageAuthor().isYourself()) return;
+                if (event.getMessageAuthor().isYourself())
+                    return;
 
                 messageHandler.accept(event);
             }
@@ -86,6 +82,49 @@ public class BotClient {
             api.disconnect();
             api = null;
         }
+    }
+
+    public CompletableFuture<org.javacord.api.entity.message.Message> sendEmbed(String channelId,
+            com.google.gson.JsonObject embedJson) {
+        if (api == null)
+            return CompletableFuture.completedFuture(null);
+
+        return api.getTextChannelById(channelId).map(channel -> {
+            org.javacord.api.entity.message.embed.EmbedBuilder embed = new org.javacord.api.entity.message.embed.EmbedBuilder();
+
+            if (embedJson.has("title"))
+                embed.setTitle(embedJson.get("title").getAsString());
+            if (embedJson.has("description"))
+                embed.setDescription(embedJson.get("description").getAsString());
+            if (embedJson.has("color"))
+                embed.setColor(new java.awt.Color(embedJson.get("color").getAsInt()));
+
+            if (embedJson.has("fields")) {
+                com.google.gson.JsonArray fields = embedJson.getAsJsonArray("fields");
+                for (com.google.gson.JsonElement fieldElem : fields) {
+                    com.google.gson.JsonObject field = fieldElem.getAsJsonObject();
+                    embed.addField(
+                            field.get("name").getAsString(),
+                            field.get("value").getAsString(),
+                            field.has("inline") && field.get("inline").getAsBoolean());
+                }
+            }
+
+            if (embedJson.has("footer")) {
+                com.google.gson.JsonObject footer = embedJson.getAsJsonObject("footer");
+                embed.setFooter(footer.get("text").getAsString());
+            }
+
+            if (embedJson.has("thumbnail")) {
+                com.google.gson.JsonObject thumbnail = embedJson.getAsJsonObject("thumbnail");
+                embed.setThumbnail(thumbnail.get("url").getAsString());
+            }
+
+            // Set timestamp to now
+            embed.setTimestampToNow();
+
+            return channel.sendMessage(embed);
+        }).orElse(CompletableFuture.completedFuture(null));
     }
 
     public boolean isConnected() {

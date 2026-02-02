@@ -54,8 +54,7 @@ public class VonixCore {
                 t.setDaemon(true);
                 return t;
             },
-            new ThreadPoolExecutor.CallerRunsPolicy()
-    );
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
     public static void init() {
         instance = new VonixCore();
@@ -88,31 +87,33 @@ public class VonixCore {
         Path configDir = Platform.getConfigDirectory();
         SimpleConfigManager.load(configDir.resolve("vonixcore-database.json"), DatabaseConfig.SPEC);
         SimpleConfigManager.load(configDir.resolve("vonixcore-essentials.json"), EssentialsConfig.SPEC);
-        
+
         // Load Discord config and ensure it exists
         Path discordConfigPath = configDir.resolve("vonixcore-discord.json");
         LOGGER.info("[{}] Checking for Discord config at: {}", MOD_NAME, discordConfigPath.toAbsolutePath());
-        
+
         SimpleConfigManager.load(discordConfigPath, DiscordConfig.SPEC);
-        
+
         if (discordConfigPath.toFile().exists()) {
-             LOGGER.info("[{}] Discord config file found and loaded.", MOD_NAME);
+            LOGGER.info("[{}] Discord config file found and loaded.", MOD_NAME);
         } else {
-             LOGGER.warn("[{}] Discord config file NOT found after load attempt! Attempting to force save defaults...", MOD_NAME);
-             // Force save if not exists (though SimpleConfigManager should handle this)
-             // SimpleConfigManager.save(discordConfigPath, DiscordConfig.SPEC); // Assuming such method exists or is internal
+            LOGGER.warn("[{}] Discord config file NOT found after load attempt! Attempting to force save defaults...",
+                    MOD_NAME);
+            // Force save if not exists (though SimpleConfigManager should handle this)
+            // SimpleConfigManager.save(discordConfigPath, DiscordConfig.SPEC); // Assuming
+            // such method exists or is internal
         }
-        
+
         SimpleConfigManager.load(configDir.resolve("vonixcore-xpsync.json"), XPSyncConfig.SPEC);
         SimpleConfigManager.load(configDir.resolve("vonixcore-auth.json"), AuthConfig.SPEC);
 
         LifecycleEvent.SERVER_STARTING.register(this::onServerStarting);
         LifecycleEvent.SERVER_STARTED.register(this::onServerStarted);
         LifecycleEvent.SERVER_STOPPING.register(this::onServerStopping);
-        
+
         // Register Discord events
         network.vonix.vonixcore.discord.DiscordEventHandler.register();
-        
+
         // Register Essentials events
         network.vonix.vonixcore.listener.EssentialsEventHandler.init();
     }
@@ -212,20 +213,6 @@ public class VonixCore {
         // Shutdown Discord with timeout
         if (discordEnabled) {
             try {
-                if (DiscordManager.getInstance().isRunning()) {
-                    String serverName = DiscordConfig.CONFIG.serverName.get();
-
-                    // Send shutdown embed with timeout
-                    CompletableFuture<Void> shutdownMessage = CompletableFuture.runAsync(() -> {
-                        DiscordManager.getInstance().sendShutdownEmbed(serverName);
-                    });
-
-                    try {
-                        shutdownMessage.get(2, TimeUnit.SECONDS);
-                    } catch (Exception e) {
-                        LOGGER.debug("[{}] Discord shutdown message timed out", MOD_NAME);
-                    }
-                }
                 DiscordManager.getInstance().shutdown();
                 LOGGER.debug("[{}] Discord shutdown complete", MOD_NAME);
             } catch (Throwable e) {

@@ -15,6 +15,7 @@ import network.vonix.vonixcore.command.WorldCommands;
 import network.vonix.vonixcore.config.EssentialsConfig;
 import network.vonix.vonixcore.permissions.PermissionCommands;
 import network.vonix.vonixcore.permissions.PermissionManager;
+import network.vonix.vonixcore.platform.Platform;
 
 import java.sql.Connection;
 
@@ -63,7 +64,14 @@ public class EssentialsEventHandler {
         });
 
         // Chat Formatting
+        // On Fabric: Handled by mixin (ServerGamePacketListenerMixin) to prevent
+        // duplicates
+        // On Forge/NeoForge: Handled here via Architectury event
         ChatEvent.RECEIVED.register((player, component) -> {
+            if (Platform.isFabric()) {
+                return EventResult.pass();
+            }
+
             if (!EssentialsConfig.CONFIG.enabled.get() || !EssentialsConfig.CONFIG.chatFormattingEnabled.get()) {
                 return EventResult.pass();
             }
@@ -71,18 +79,35 @@ public class EssentialsEventHandler {
             if (player instanceof ServerPlayer) {
                 ServerPlayer serverPlayer = (ServerPlayer) player;
                 String rawMessage = component.getString();
-                
+
                 // Format the message with prefix/suffix
                 Component formatted = ChatFormatter.formatChatMessage(serverPlayer, rawMessage);
 
                 // Manually broadcast the formatted message to all players
+                // Note: On Forge this might double-broadcast if not careful, but usually
+                // EventResult.interruptTrue() stops vanilla
                 serverPlayer.server.getPlayerList().broadcastSystemMessage(formatted, false);
-                
-                // Send to Discord
+
+                // Send to Discord (with optional prefix filtering)
                 try {
                     if (network.vonix.vonixcore.discord.DiscordManager.getInstance().isRunning()) {
-                        network.vonix.vonixcore.discord.DiscordManager.getInstance()
-                            .sendChatMessage(serverPlayer.getName().getString(), rawMessage, serverPlayer.getStringUUID());
+                        boolean shouldSendToDiscord = true;
+
+                        // Check if chat filter is enabled and message starts with filter prefix
+                        if (network.vonix.vonixcore.config.DiscordConfig.CONFIG.enableChatFilter.get()) {
+                            String filterPrefix = network.vonix.vonixcore.config.DiscordConfig.CONFIG.chatFilterPrefix
+                                    .get();
+                            if (filterPrefix != null && !filterPrefix.isEmpty()
+                                    && rawMessage.startsWith(filterPrefix)) {
+                                shouldSendToDiscord = false;
+                            }
+                        }
+
+                        if (shouldSendToDiscord) {
+                            network.vonix.vonixcore.discord.DiscordManager.getInstance()
+                                    .sendChatMessage(serverPlayer.getName().getString(), rawMessage,
+                                            serverPlayer.getStringUUID());
+                        }
                     }
                 } catch (Exception e) {
                     VonixCore.LOGGER.error("Failed to send chat to Discord", e);

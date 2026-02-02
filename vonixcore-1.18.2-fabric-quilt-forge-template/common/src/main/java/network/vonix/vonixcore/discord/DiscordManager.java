@@ -12,6 +12,8 @@ import org.javacord.api.entity.message.Message;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
@@ -24,15 +26,16 @@ public class DiscordManager {
     private final BotClient botClient;
     private final WebhookClient webhookClient;
     private final MessageConverter messageConverter;
-    
+
     // Server reference
     private MinecraftServer server;
-    
+
     // Sub-systems
     private LinkedAccountsManager linkedAccountsManager;
     private PlayerPreferences playerPreferences;
-    
+
     private boolean running = false;
+    private String eventChannelId;
 
     private DiscordManager() {
         this.botClient = new BotClient();
@@ -66,7 +69,17 @@ public class DiscordManager {
         String channelId = DiscordConfig.CONFIG.channelId.get();
 
         this.webhookClient.updateUrl(webhookUrl);
-        
+
+        // Determine event channel
+        String pEventChannelId = DiscordConfig.CONFIG.eventChannelId.get();
+        if (pEventChannelId != null && !pEventChannelId.isEmpty()) {
+            this.eventChannelId = pEventChannelId;
+            VonixCore.LOGGER.info("[Discord] Using separate channel for events: {}", pEventChannelId);
+        } else {
+            this.eventChannelId = channelId;
+            VonixCore.LOGGER.info("[Discord] Using main channel for events.");
+        }
+
         // 2. Initialize Sub-systems
         Path configDir = Platform.getConfigDirectory();
         try {
@@ -80,41 +93,95 @@ public class DiscordManager {
 
         // 3. Connect Bot
         this.botClient.setMessageHandler(this::onDiscordMessage);
-        this.botClient.connect(botToken, channelId);
+        this.botClient.connect(botToken, channelId).thenRun(() -> {
+            // 4. Send Startup Message (only after connection)
+            sendStartupEmbed(DiscordConfig.CONFIG.serverName.get());
+        });
 
-        // 4. Send Startup Message
-        sendStartupEmbed(DiscordConfig.CONFIG.serverName.get());
-        
         VonixCore.LOGGER.info("[Discord] Integration initialized.");
     }
 
     public void shutdown() {
-        if (!running) return;
+        if (!running)
+            return;
+
+        VonixCore.LOGGER.info("[Discord] Sending shutdown message...");
+        try {
+            sendShutdownEmbed(DiscordConfig.CONFIG.serverName.get()).get(5, TimeUnit.SECONDS);
+            VonixCore.LOGGER.info("[Discord] Shutdown message sent successfully");
+        } catch (Exception e) {
+            VonixCore.LOGGER.warn("[Discord] Failed to send shutdown message", e);
+        }
+
         running = false;
 
-        sendShutdownEmbed(DiscordConfig.CONFIG.serverName.get());
-
-        if (botClient != null) botClient.disconnect();
-        if (webhookClient != null) webhookClient.shutdown();
+        if (botClient != null)
+            botClient.disconnect();
+        if (webhookClient != null)
+            webhookClient.shutdown();
     }
 
     /**
      * Handles incoming messages from Discord (via BotClient).
      */
     private void onDiscordMessage(org.javacord.api.event.message.MessageCreateEvent event) {
-        if (server == null) return;
+        if (server == null)
+            return;
 
         Message message = event.getMessage();
-        
+        String msgChannelId = message.getChannel().getIdAsString();
+        String mainChannelId = DiscordConfig.CONFIG.channelId.get();
+        String eventChannelId = DiscordConfig.CONFIG.eventChannelId.get();
+
+        boolean isMainChannel = mainChannelId != null && mainChannelId.equals(msgChannelId);
+        boolean isEventChannel = eventChannelId != null && !eventChannelId.isEmpty()
+                && eventChannelId.equals(msgChannelId);
+
+        // Ignore messages from other channels
+        if (!isMainChannel && !isEventChannel) {
+            return;
+        }
+
+        // If it's an event channel message, check if we should show other server events
+        if (isEventChannel && !DiscordConfig.CONFIG.showOtherServerEvents.get()) {
+            return;
+        }
+
         // Filter out bots if configured
-        if (DiscordConfig.CONFIG.ignoreBots.get() && message.getAuthor().isBotUser()) return;
+        if (DiscordConfig.CONFIG.ignoreBots.get() && message.getAuthor().isBotUser())
+            return;
+
+        // Filter out webhooks if configured
+        if (DiscordConfig.CONFIG.ignoreWebhooks.get() && message.getAuthor().isWebhook())
+            return;
+
+        // Filter by prefix to prevent echoing our own messages
+        if (DiscordConfig.CONFIG.filterByPrefix.get()) {
+            String serverPrefix = DiscordConfig.CONFIG.serverPrefix.get();
+            if (serverPrefix != null && !serverPrefix.isEmpty()) {
+                String authorName = message.getAuthor().getDisplayName();
+                // Check if author name starts with our prefix (e.g., "[HomeStead]SomePlayer")
+                if (authorName.startsWith(serverPrefix)) {
+                    return; // Skip - this is our own message echoing back
+                }
+                // Also check webhook username format
+                String webhookFormat = DiscordConfig.CONFIG.webhookUsernameFormat.get();
+                if (webhookFormat != null && webhookFormat.contains("{prefix}")) {
+                    String expectedStart = webhookFormat.split("\\{prefix\\}")[0] + serverPrefix;
+                    if (authorName.startsWith(expectedStart) || authorName.startsWith(serverPrefix)) {
+                        return; // Skip - this is our own message
+                    }
+                }
+            }
+        }
 
         // Convert to Minecraft Component
         Component chatComponent = MessageConverter.toMinecraft(message);
 
         // Broadcast to server
         server.execute(() -> {
-            server.getPlayerList().broadcastMessage(chatComponent, net.minecraft.network.chat.ChatType.SYSTEM, net.minecraft.Util.NIL_UUID);
+            server.getPlayerList().broadcastMessage(chatComponent, net.minecraft.network.chat.ChatType.SYSTEM,
+                    net.minecraft.Util.NIL_UUID);
         });
     }
 
@@ -123,7 +190,8 @@ public class DiscordManager {
     // =================================================================================
 
     public void sendMinecraftMessage(String username, String message) {
-        if (!running || webhookClient == null) return;
+        if (!running || webhookClient == null)
+            return;
 
         String prefix = DiscordConfig.CONFIG.serverPrefix.get();
         String formattedUsername = DiscordConfig.CONFIG.webhookUsernameFormat.get()
@@ -131,13 +199,14 @@ public class DiscordManager {
                 .replace("{username}", username);
 
         String avatarUrl = getAvatarUrl(username);
-        
+
         webhookClient.sendMessage(formattedUsername, avatarUrl, message);
     }
 
     public void sendSystemMessage(String message) {
-        if (!running) return;
-        
+        if (!running)
+            return;
+
         if (message.startsWith("💀")) {
             sendDeathEmbed(message);
         } else {
@@ -150,77 +219,82 @@ public class DiscordManager {
     // Embed Senders
     // =================================================================================
 
-    private void sendEmbedInternal(Consumer<JsonObject> embedBuilder) {
-        if (webhookClient == null) return;
+    private CompletableFuture<Message> sendEventEmbedInternal(Consumer<JsonObject> embedBuilder) {
+        if (!running)
+            return CompletableFuture.completedFuture(null);
         JsonObject embed = new JsonObject();
         embedBuilder.accept(embed);
-        webhookClient.sendEmbed("Server", null, embed);
+        return botClient.sendEmbed(eventChannelId, embed);
     }
 
     public void sendStartupEmbed(String serverName) {
-        sendEmbedInternal(EmbedFactory.createServerStatusEmbed(
-            "Server Online", 
-            "Server is now online", 
-            0x43B581, 
-            serverName, 
-            "VonixCore"
-        ));
+        sendEventEmbedInternal(EmbedFactory.createServerStatusEmbed(
+                "Server Online",
+                "Server is now online",
+                0x43B581,
+                serverName,
+                "VonixCore"));
     }
 
-    public void sendShutdownEmbed(String serverName) {
-        sendEmbedInternal(EmbedFactory.createServerStatusEmbed(
-            "Server Offline", 
-            "Server is shutting down", 
-            0xF04747, 
-            serverName, 
-            "VonixCore"
-        ));
+    public CompletableFuture<Message> sendShutdownEmbed(String serverName) {
+        return sendEventEmbedInternal(EmbedFactory.createServerStatusEmbed(
+                "Server Offline",
+                "Server is shutting down",
+                0xF04747,
+                serverName,
+                "VonixCore"));
     }
 
     public void sendJoinEmbed(String username, String uuid) {
-        if (!DiscordConfig.CONFIG.sendJoin.get()) return;
-        
-        sendEmbedInternal(EmbedFactory.createPlayerEventEmbed(
-            "Player Joined", 
-            username + " joined the game", 
-            0x5865F2, 
-            username, 
-            DiscordConfig.CONFIG.serverName.get(), 
-            "Join", 
-            getAvatarUrl(username) // TODO: Use UUID if possible
+        if (!DiscordConfig.CONFIG.sendJoin.get())
+            return;
+
+        sendEventEmbedInternal(EmbedFactory.createPlayerEventEmbed(
+                "Player Joined",
+                username + " joined the game",
+                0x5865F2,
+                username,
+                DiscordConfig.CONFIG.serverName.get(),
+                "Join",
+                getAvatarUrl(username) // TODO: Use UUID if possible
         ));
     }
 
     public void sendLeaveEmbed(String username, String uuid) {
-        if (!DiscordConfig.CONFIG.sendLeave.get()) return;
+        if (!DiscordConfig.CONFIG.sendLeave.get())
+            return;
 
-        sendEmbedInternal(EmbedFactory.createPlayerEventEmbed(
-            "Player Left", 
-            username + " left the game", 
-            0x99AAB5, 
-            username, 
-            DiscordConfig.CONFIG.serverName.get(), 
-            "Leave", 
-            getAvatarUrl(username) // TODO: Use UUID if possible
+        sendEventEmbedInternal(EmbedFactory.createPlayerEventEmbed(
+                "Player Left",
+                username + " left the game",
+                0x99AAB5,
+                username,
+                DiscordConfig.CONFIG.serverName.get(),
+                "Leave",
+                getAvatarUrl(username) // TODO: Use UUID if possible
         ));
     }
 
     // Deprecated single-arg methods for compatibility if needed
-    public void sendJoinEmbed(String username) { sendJoinEmbed(username, null); }
-    public void sendLeaveEmbed(String username) { sendLeaveEmbed(username, null); }
+    public void sendJoinEmbed(String username) {
+        sendJoinEmbed(username, null);
+    }
+
+    public void sendLeaveEmbed(String username) {
+        sendLeaveEmbed(username, null);
+    }
 
     public void updateStatus() {
         updateBotStatus();
     }
 
     public void sendServerStatusMessage(String title, String description, int color) {
-        sendEmbedInternal(EmbedFactory.createServerStatusEmbed(
-            title, 
-            description, 
-            color, 
-            DiscordConfig.CONFIG.serverName.get(), 
-            "VonixCore"
-        ));
+        sendEventEmbedInternal(EmbedFactory.createServerStatusEmbed(
+                title,
+                description,
+                color,
+                DiscordConfig.CONFIG.serverName.get(),
+                "VonixCore"));
     }
 
     public void sendChatMessage(String username, String message, String uuid) {
@@ -232,19 +306,21 @@ public class DiscordManager {
         embed.addProperty("title", "Player Died");
         embed.addProperty("description", message);
         embed.addProperty("color", 0xF04747);
-        webhookClient.sendEmbed("Server", null, embed);
+        if (running) {
+            botClient.sendEmbed(eventChannelId, embed);
+        }
     }
 
     public void sendAdvancementEmbed(String username, String title, String desc) {
-        if (!DiscordConfig.CONFIG.sendAdvancement.get()) return;
-        
-        sendEmbedInternal(EmbedFactory.createAdvancementEmbed(
-            "🏆", 
-            0xFAA61A, 
-            username, 
-            title, 
-            desc
-        ));
+        if (!DiscordConfig.CONFIG.sendAdvancement.get())
+            return;
+
+        sendEventEmbedInternal(EmbedFactory.createAdvancementEmbed(
+                "🏆",
+                0xFAA61A,
+                username,
+                title,
+                desc));
     }
 
     public void updateBotStatus() {
@@ -282,9 +358,11 @@ public class DiscordManager {
     // =================================================================================
 
     public String generateLinkCode(ServerPlayer player) {
-        return linkedAccountsManager != null ? linkedAccountsManager.generateLinkCode(player.getUUID(), player.getName().getString()) : null;
+        return linkedAccountsManager != null
+                ? linkedAccountsManager.generateLinkCode(player.getUUID(), player.getName().getString())
+                : null;
     }
-    
+
     public boolean unlinkAccount(UUID uuid) {
         return linkedAccountsManager != null && linkedAccountsManager.unlinkMinecraft(uuid);
     }

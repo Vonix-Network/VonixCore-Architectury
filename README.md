@@ -4,7 +4,7 @@ This is the Architectury rewrite of VonixCore, supporting Fabric, Forge, and Qui
 
 ## Modules
 - **Essentials**: Homes, Warps, Kits, Teleportation (RTP), Admin Tools
-- **Discord**: Bidirectional Chat, Account Linking, Event Logging
+- **Discord**: Bidirectional Chat, Account Linking, Cross-server Event Logging, Chat Filtering, Echo Prevention
 - **XPSync**: Cross-server XP synchronization
 - **Auth**: Authentication system
 

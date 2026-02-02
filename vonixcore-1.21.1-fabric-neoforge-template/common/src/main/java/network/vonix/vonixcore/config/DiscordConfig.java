@@ -11,249 +11,263 @@ import org.apache.commons.lang3.tuple.Pair;
  */
 public class DiscordConfig {
 
-    public static final SimpleConfigSpec SPEC;
-    public static final DiscordConfig CONFIG;
+        public static final SimpleConfigSpec SPEC;
+        public static final DiscordConfig CONFIG;
 
-    // Master toggle
-    public final SimpleConfigValue<Boolean> enabled;
+        // Master toggle
+        public final SimpleConfigValue<Boolean> enabled;
 
-    // Connection settings
-    public final SimpleConfigValue<String> botToken;
-    public final SimpleConfigValue<String> channelId;
-    public final SimpleConfigValue<String> webhookUrl;
-    public final SimpleConfigValue<String> webhookId;
-    public final SimpleConfigValue<String> inviteUrl;
+        // Connection settings
+        public final SimpleConfigValue<String> botToken;
+        public final SimpleConfigValue<String> channelId;
+        public final SimpleConfigValue<String> webhookUrl;
+        public final SimpleConfigValue<String> webhookId;
+        public final SimpleConfigValue<String> inviteUrl;
 
-    // Server identity
-    public final SimpleConfigValue<String> serverPrefix;
-    public final SimpleConfigValue<String> serverName;
-    public final SimpleConfigValue<String> serverAvatarUrl;
+        // Server identity
+        public final SimpleConfigValue<String> serverPrefix;
+        public final SimpleConfigValue<String> serverName;
+        public final SimpleConfigValue<String> serverAvatarUrl;
 
-    // Message formats
-    public final SimpleConfigValue<String> discordToMinecraftFormat;
-    public final SimpleConfigValue<String> minecraftToDiscordFormat;
-    public final SimpleConfigValue<String> webhookUsernameFormat;
-    public final SimpleConfigValue<String> avatarUrl;
+        // Message formats
+        public final SimpleConfigValue<String> discordToMinecraftFormat;
+        public final SimpleConfigValue<String> minecraftToDiscordFormat;
+        public final SimpleConfigValue<String> webhookUsernameFormat;
+        public final SimpleConfigValue<String> avatarUrl;
 
-    // Event settings
-    public final SimpleConfigValue<Boolean> sendJoin;
-    public final SimpleConfigValue<Boolean> sendLeave;
-    public final SimpleConfigValue<Boolean> sendDeath;
-    public final SimpleConfigValue<Boolean> sendAdvancement;
-    public final SimpleConfigValue<String> eventChannelId;
-    public final SimpleConfigValue<String> eventWebhookUrl;
+        // Event settings
+        public final SimpleConfigValue<Boolean> sendJoin;
+        public final SimpleConfigValue<Boolean> sendLeave;
+        public final SimpleConfigValue<Boolean> sendDeath;
+        public final SimpleConfigValue<Boolean> sendAdvancement;
+        public final SimpleConfigValue<String> eventChannelId;
+        public final SimpleConfigValue<String> eventWebhookUrl;
 
-    // Loop prevention
-    public final SimpleConfigValue<Boolean> ignoreBots;
-    public final SimpleConfigValue<Boolean> ignoreWebhooks;
-    public final SimpleConfigValue<Boolean> filterByPrefix;
-    public final SimpleConfigValue<Boolean> showOtherServerEvents;
+        // Loop prevention
+        public final SimpleConfigValue<Boolean> ignoreBots;
+        public final SimpleConfigValue<Boolean> ignoreWebhooks;
+        public final SimpleConfigValue<Boolean> filterByPrefix;
+        public final SimpleConfigValue<Boolean> showOtherServerEvents;
 
-    // Bot status
-    public final SimpleConfigValue<Boolean> setBotStatus;
-    public final SimpleConfigValue<String> botStatusFormat;
+        // Chat filtering
+        public final SimpleConfigValue<Boolean> enableChatFilter;
+        public final SimpleConfigValue<String> chatFilterPrefix;
 
-    // Account linking
-    public final SimpleConfigValue<Boolean> enableAccountLinking;
-    public final SimpleConfigValue<Integer> linkCodeExpiry;
+        // Bot status
+        public final SimpleConfigValue<Boolean> setBotStatus;
+        public final SimpleConfigValue<String> botStatusFormat;
 
-    // Advanced
-    public final SimpleConfigValue<Boolean> debugLogging;
-    public final SimpleConfigValue<Integer> messageQueueSize;
-    public final SimpleConfigValue<Integer> rateLimitDelay;
+        // Account linking
+        public final SimpleConfigValue<Boolean> enableAccountLinking;
+        public final SimpleConfigValue<Integer> linkCodeExpiry;
 
-    static {
-        Pair<DiscordConfig, SimpleConfigSpec> pair = new SimpleConfigBuilder()
-                .configure(DiscordConfig::new);
-        CONFIG = pair.getLeft();
-        SPEC = pair.getRight();
-    }
+        // Advanced
+        public final SimpleConfigValue<Boolean> debugLogging;
+        public final SimpleConfigValue<Integer> messageQueueSize;
+        public final SimpleConfigValue<Integer> rateLimitDelay;
 
-    private DiscordConfig(SimpleConfigBuilder builder) {
-        builder.comment(
-                "VonixCore Discord Integration",
-                "Bidirectional chat between Minecraft and Discord",
-                "",
-                "Setup Guide:",
-                "1. Create a Discord bot at https://discord.com/developers/applications",
-                "2. Enable MESSAGE CONTENT INTENT in Bot settings",
-                "3. Invite bot to your server with Message permissions",
-                "4. Copy bot token and paste below",
-                "5. Create a webhook in your Discord channel and paste URL below")
-                .push("discord");
+        static {
+                Pair<DiscordConfig, SimpleConfigSpec> pair = new SimpleConfigBuilder()
+                                .configure(DiscordConfig::new);
+                CONFIG = pair.getLeft();
+                SPEC = pair.getRight();
+        }
 
-        enabled = builder.comment(
-                "Enable Discord integration",
-                "Set to false to completely disable Discord features")
-                .define("enabled", false);
+        private DiscordConfig(SimpleConfigBuilder builder) {
+                builder.comment(
+                                "VonixCore Discord Integration",
+                                "Bidirectional chat between Minecraft and Discord",
+                                "",
+                                "Setup Guide:",
+                                "1. Create a Discord bot at https://discord.com/developers/applications",
+                                "2. Enable MESSAGE CONTENT INTENT in Bot settings",
+                                "3. Invite bot to your server with Message permissions",
+                                "4. Copy bot token and paste below",
+                                "5. Create a webhook in your Discord channel and paste URL below")
+                                .push("discord");
 
-        builder.pop().comment(
-                "Connection Settings",
-                "Required settings to connect to Discord")
-                .push("connection");
+                enabled = builder.comment(
+                                "Enable Discord integration",
+                                "Set to false to completely disable Discord features")
+                                .define("enabled", false);
 
-        botToken = builder.comment(
-                "Discord Bot Token",
-                "Get from: Discord Developer Portal -> Your App -> Bot -> Token",
-                "IMPORTANT: Keep this secret! Never share your bot token.")
-                .define("bot_token", "YOUR_BOT_TOKEN_HERE");
+                builder.pop().comment(
+                                "Connection Settings",
+                                "Required settings to connect to Discord")
+                                .push("connection");
 
-        channelId = builder.comment(
-                "Discord Channel ID for chat messages",
-                "Right-click the channel -> Copy Channel ID",
-                "(Enable Developer Mode in Discord settings first)")
-                .define("channel_id", "YOUR_CHANNEL_ID_HERE");
+                botToken = builder.comment(
+                                "Discord Bot Token",
+                                "Get from: Discord Developer Portal -> Your App -> Bot -> Token",
+                                "IMPORTANT: Keep this secret! Never share your bot token.")
+                                .define("bot_token", "YOUR_BOT_TOKEN_HERE");
 
-        webhookUrl = builder.comment(
-                "Discord Webhook URL for sending messages",
-                "Channel Settings -> Integrations -> Webhooks -> New Webhook -> Copy URL")
-                .define("webhook_url", "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL");
+                channelId = builder.comment(
+                                "Discord Channel ID for chat messages",
+                                "Right-click the channel -> Copy Channel ID",
+                                "(Enable Developer Mode in Discord settings first)")
+                                .define("channel_id", "YOUR_CHANNEL_ID_HERE");
 
-        webhookId = builder.comment(
-                "Webhook ID (leave empty to auto-extract from URL)",
-                "Only set this if auto-detection doesn't work")
-                .define("webhook_id", "");
+                webhookUrl = builder.comment(
+                                "Discord Webhook URL for sending messages",
+                                "Channel Settings -> Integrations -> Webhooks -> New Webhook -> Copy URL")
+                                .define("webhook_url", "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL");
 
-        inviteUrl = builder.comment(
-                "Public Discord invite URL",
-                "Shown when players use /discord command")
-                .define("invite_url", "");
+                webhookId = builder.comment(
+                                "Webhook ID (leave empty to auto-extract from URL)",
+                                "Only set this if auto-detection doesn't work")
+                                .define("webhook_id", "");
 
-        builder.pop().comment(
-                "Server Identity",
-                "How your server appears in Discord")
-                .push("server_identity");
+                inviteUrl = builder.comment(
+                                "Public Discord invite URL",
+                                "Shown when players use /discord command")
+                                .define("invite_url", "");
 
-        serverPrefix = builder.comment(
-                "Server prefix shown in Discord messages",
-                "Example: [Survival], [Creative], [SMP]")
-                .define("prefix", "[MC]");
+                builder.pop().comment(
+                                "Server Identity",
+                                "How your server appears in Discord")
+                                .push("server_identity");
 
-        serverName = builder.comment(
-                "Server name for embeds and bot messages")
-                .define("name", "Minecraft Server");
+                serverPrefix = builder.comment(
+                                "Server prefix shown in Discord messages",
+                                "Example: [Survival], [Creative], [SMP]")
+                                .define("prefix", "[MC]");
 
-        serverAvatarUrl = builder.comment(
-                "Server avatar URL for event messages",
-                "Leave empty to use default")
-                .define("avatar_url", "");
+                serverName = builder.comment(
+                                "Server name for embeds and bot messages")
+                                .define("name", "Minecraft Server");
 
-        builder.pop().comment(
-                "Message Formats",
-                "Customize how messages appear")
-                .push("message_formats");
+                serverAvatarUrl = builder.comment(
+                                "Server avatar URL for event messages",
+                                "Leave empty to use default")
+                                .define("avatar_url", "");
 
-        discordToMinecraftFormat = builder.comment(
-                "Format for Discord -> Minecraft messages",
-                "Placeholders: {username}, {message}")
-                .define("discord_to_minecraft", "§b[Discord] §f{username}: {message}");
+                builder.pop().comment(
+                                "Message Formats",
+                                "Customize how messages appear")
+                                .push("message_formats");
 
-        minecraftToDiscordFormat = builder.comment(
-                "Format for Minecraft -> Discord messages",
-                "Placeholder: {message}")
-                .define("minecraft_to_discord", "{message}");
+                discordToMinecraftFormat = builder.comment(
+                                "Format for Discord -> Minecraft messages",
+                                "Placeholders: {username}, {message}")
+                                .define("discord_to_minecraft", "§b[Discord] §f{username}: {message}");
 
-        webhookUsernameFormat = builder.comment(
-                "Webhook display name format",
-                "Placeholders: {prefix}, {username}")
-                .define("webhook_username", "{prefix}{username}");
+                minecraftToDiscordFormat = builder.comment(
+                                "Format for Minecraft -> Discord messages",
+                                "Placeholder: {message}")
+                                .define("minecraft_to_discord", "{message}");
 
-        avatarUrl = builder.comment(
-                "Player avatar URL template",
-                "Placeholders: {uuid}, {username}")
-                .define("avatar_url", "https://minotar.net/armor/bust/{uuid}/100.png");
+                webhookUsernameFormat = builder.comment(
+                                "Webhook display name format",
+                                "Placeholders: {prefix}, {username}")
+                                .define("webhook_username", "{prefix}{username}");
 
-        builder.pop().comment(
-                "Event Notifications",
-                "Choose which events to send to Discord")
-                .push("events");
+                avatarUrl = builder.comment(
+                                "Player avatar URL template",
+                                "Placeholders: {uuid}, {username}")
+                                .define("avatar_url", "https://minotar.net/armor/bust/{uuid}/100.png");
 
-        sendJoin = builder.comment("Send player join notifications")
-                .define("send_join", true);
+                builder.pop().comment(
+                                "Event Notifications",
+                                "Choose which events to send to Discord")
+                                .push("events");
 
-        sendLeave = builder.comment("Send player leave notifications")
-                .define("send_leave", true);
+                sendJoin = builder.comment("Send player join notifications")
+                                .define("send_join", true);
 
-        sendDeath = builder.comment("Send player death messages")
-                .define("send_death", true);
+                sendLeave = builder.comment("Send player leave notifications")
+                                .define("send_leave", true);
 
-        sendAdvancement = builder.comment("Send advancement notifications")
-                .define("send_advancement", true);
+                sendDeath = builder.comment("Send player death messages")
+                                .define("send_death", true);
 
-        eventChannelId = builder.comment(
-                "Separate channel ID for events (optional)",
-                "Leave empty to use main channel")
-                .define("event_channel_id", "");
+                sendAdvancement = builder.comment("Send advancement notifications")
+                                .define("send_advancement", true);
 
-        eventWebhookUrl = builder.comment(
-                "Separate webhook URL for events (optional)",
-                "Leave empty to use main webhook")
-                .define("event_webhook_url", "");
+                eventChannelId = builder.comment(
+                                "Separate channel ID for events (optional)",
+                                "Leave empty to use main channel")
+                                .define("event_channel_id", "");
 
-        builder.pop().comment(
-                "Loop Prevention",
-                "Prevent message loops in multi-server setups")
-                .push("loop_prevention");
+                eventWebhookUrl = builder.comment(
+                                "Separate webhook URL for events (optional)",
+                                "Leave empty to use main webhook")
+                                .define("event_webhook_url", "");
 
-        ignoreBots = builder.comment("Ignore messages from Discord bots")
-                .define("ignore_bots", false);
+                builder.pop().comment(
+                                "Loop Prevention",
+                                "Prevent message loops in multi-server setups")
+                                .push("loop_prevention");
 
-        ignoreWebhooks = builder.comment("Ignore messages from other webhooks")
-                .define("ignore_webhooks", false);
+                ignoreBots = builder.comment("Ignore messages from Discord bots")
+                                .define("ignore_bots", false);
 
-        filterByPrefix = builder.comment(
-                "Filter webhooks by server prefix",
-                "Useful for multi-server setups sharing a channel")
-                .define("filter_by_prefix", true);
+                ignoreWebhooks = builder.comment("Ignore messages from other webhooks")
+                                .define("ignore_webhooks", false);
 
-        showOtherServerEvents = builder.comment(
-                "Show events from other servers in Minecraft",
-                "Only applies to multi-server setups")
-                .define("show_other_server_events", true);
+                filterByPrefix = builder.comment(
+                                "Filter webhooks by server prefix",
+                                "Useful for multi-server setups sharing a channel")
+                                .define("filter_by_prefix", true);
 
-        builder.pop().comment(
-                "Bot Status",
-                "Configure the bot's Discord presence")
-                .push("bot_status");
+                showOtherServerEvents = builder.comment(
+                                "Show events from other servers in Minecraft",
+                                "Only applies to multi-server setups")
+                                .define("show_other_server_events", true);
 
-        setBotStatus = builder.comment("Update bot status with player count")
-                .define("enabled", true);
+                enableChatFilter = builder.comment(
+                                "Enable chat filter to prevent certain messages from being sent to Discord",
+                                "Messages starting with the filter prefix will only appear in-game")
+                                .define("enable_chat_filter", false);
 
-        botStatusFormat = builder.comment(
-                "Bot status format",
-                "Placeholders: {online}, {max}")
-                .define("format", "{online}/{max} players online");
+                chatFilterPrefix = builder.comment(
+                                "Prefix to filter chat messages from Discord relay",
+                                "Example: '!' means messages like '!test' won't be sent to Discord")
+                                .define("chat_filter_prefix", "!");
 
-        builder.pop().comment(
-                "Account Linking",
-                "Allow players to link Minecraft and Discord accounts")
-                .push("account_linking");
+                builder.pop().comment(
+                                "Bot Status",
+                                "Configure the bot's Discord presence")
+                                .push("bot_status");
 
-        enableAccountLinking = builder.comment("Enable Discord account linking")
-                .define("enabled", true);
+                setBotStatus = builder.comment("Update bot status with player count")
+                                .define("enabled", true);
 
-        linkCodeExpiry = builder.comment(
-                "How long link codes remain valid (seconds)")
-                .defineInRange("code_expiry_seconds", 300, 60, 600);
+                botStatusFormat = builder.comment(
+                                "Bot status format",
+                                "Placeholders: {online}, {max}")
+                                .define("format", "{online}/{max} players online");
 
-        builder.pop().comment(
-                "Advanced Settings",
-                "Performance and debugging options")
-                .push("advanced");
+                builder.pop().comment(
+                                "Account Linking",
+                                "Allow players to link Minecraft and Discord accounts")
+                                .push("account_linking");
 
-        debugLogging = builder.comment("Enable verbose debug logging")
-                .define("debug_logging", false);
+                enableAccountLinking = builder.comment("Enable Discord account linking")
+                                .define("enabled", true);
 
-        messageQueueSize = builder.comment(
-                "Maximum queued messages before dropping",
-                "Increase if messages are being lost during high traffic")
-                .defineInRange("message_queue_size", 100, 10, 1000);
+                linkCodeExpiry = builder.comment(
+                                "How long link codes remain valid (seconds)")
+                                .defineInRange("code_expiry_seconds", 300, 60, 600);
 
-        rateLimitDelay = builder.comment(
-                "Minimum delay between webhook messages (ms)",
-                "Prevents rate limiting from Discord")
-                .defineInRange("rate_limit_delay", 1000, 100, 5000);
+                builder.pop().comment(
+                                "Advanced Settings",
+                                "Performance and debugging options")
+                                .push("advanced");
 
-        builder.pop();
-    }
+                debugLogging = builder.comment("Enable verbose debug logging")
+                                .define("debug_logging", false);
+
+                messageQueueSize = builder.comment(
+                                "Maximum queued messages before dropping",
+                                "Increase if messages are being lost during high traffic")
+                                .defineInRange("message_queue_size", 100, 10, 1000);
+
+                rateLimitDelay = builder.comment(
+                                "Minimum delay between webhook messages (ms)",
+                                "Prevents rate limiting from Discord")
+                                .defineInRange("rate_limit_delay", 1000, 100, 5000);
+
+                builder.pop();
+        }
 }
