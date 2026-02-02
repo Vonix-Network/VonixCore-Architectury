@@ -8,15 +8,15 @@
     "Me!"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://vonix.network",
+    "sources": "https://github.com/Vonix-Network/VonixCore-Architectury"
   },
   "license": "CC0-1.0",
   "icon": "assets/vonixcore/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "network.vonix.vonixcore.fabric.ExampleModFabric"
+      "network.vonix.vonixcore.fabric.VonixCoreFabric"
     ],
     "client": [
       "network.vonix.vonixcore.fabric.client.ExampleModFabricClient"
@@ -26,7 +26,7 @@
     "vonixcore.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.18.4",
+    "fabricloader": ">=0.15.0",
     "minecraft": "~1.20.1",
     "java": ">=17",
     "architectury": ">=9.2.14",

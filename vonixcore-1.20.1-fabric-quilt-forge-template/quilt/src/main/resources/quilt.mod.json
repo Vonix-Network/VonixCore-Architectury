@@ -15,7 +15,7 @@
     "intermediate_mappings": "net.fabricmc:intermediary",
     "entrypoints": {
       "init": [
-        "network.vonix.vonixcore.quilt.ExampleModQuilt"
+        "network.vonix.vonixcore.quilt.VonixCoreQuilt"
       ]
     },
     "depends": [

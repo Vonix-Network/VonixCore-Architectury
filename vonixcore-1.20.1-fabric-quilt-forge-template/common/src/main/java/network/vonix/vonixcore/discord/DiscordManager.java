@@ -103,6 +103,11 @@ public class DiscordManager {
                         .login()
                         .join();
 
+                if (api == null) {
+                    VonixCore.LOGGER.error("Discord API instance is null after login!");
+                    return;
+                }
+
                 isConnected = true;
                 VonixCore.LOGGER.info("Connected to Discord as {}", api.getYourself().getDiscriminatedName());
 
@@ -218,8 +223,21 @@ public class DiscordManager {
     }
 
     private void handleDiscordMessage(Message message) {
-        // Check for commands
         String content = message.getContent();
+        
+        // Loop Prevention: Filter by prefix
+        // If enabled, ignore messages that start with our server prefix (prevents self-echo from webhooks)
+        if (DiscordConfig.CONFIG.filterByPrefix.get()) {
+            String serverPrefix = DiscordConfig.CONFIG.serverPrefix.get();
+            if (content.startsWith(serverPrefix)) {
+                if (DiscordConfig.CONFIG.debugLogging.get()) {
+                    VonixCore.LOGGER.info("Ignored Discord message (Loop Prevention): Starts with server prefix '{}'", serverPrefix);
+                }
+                return;
+            }
+        }
+        
+        // Check for commands
         String prefix = DiscordConfig.CONFIG.serverPrefix.get();
         
         if (content.startsWith(prefix)) {

@@ -1,26 +1,17 @@
-# VonixCore
+# VonixCore (Architectury Rewrite)
 
-## Overview
-VonixCore is a comprehensive, modular essentials mod for Minecraft, built on the Architectury API to support Fabric, Forge, and Quilt platforms across multiple versions (1.18.2, 1.20.1, 1.21.1).
-
-Developed by **Vonix.Network**, this project is open-source and non-copyright.
+This is the Architectury rewrite of VonixCore, supporting Fabric, Forge, and Quilt/NeoForge across multiple Minecraft versions (1.18.2, 1.20.1, 1.21.1).
 
 ## Modules
-- **Essentials:** Homes, Warps, Kits, Teleportation (RTP/TPA), Administration tools.
-- **Discord Integration:** Full two-way chat bridge, server status, account linking, event logging.
-- **XP Sync:** Cross-server experience synchronization.
-- **Database:** MySQL/SQLite support for persistent data.
+- **Essentials**: Homes, Warps, Kits, Teleportation (RTP), Admin Tools
+- **Discord**: Bidirectional Chat, Account Linking, Event Logging
+- **XPSync**: Cross-server XP synchronization
+- **Auth**: Authentication system
 
-## Supported Versions
-- 1.18.2
-- 1.20.1
-- 1.21.1
+## Structure
+- `vonixcore-1.18.2-fabric-quilt-forge-template`: 1.18.2 implementation
+- `vonixcore-1.20.1-fabric-quilt-forge-template`: 1.20.1 implementation
+- `vonixcore-1.21.1-fabric-neoforge-template`: 1.21.1 implementation
 
 ## Building
-Run the following command in the respective version directory:
-```bash
-./gradlew build
-```
-
-## License
-Open Source / Non-Copyright
+Run `./gradlew build` in the respective version directory.
