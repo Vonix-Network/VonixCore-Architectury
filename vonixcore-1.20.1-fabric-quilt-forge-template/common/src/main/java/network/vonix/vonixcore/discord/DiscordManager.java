@@ -97,11 +97,14 @@ public class DiscordManager {
         VonixCore.executeAsync(() -> {
             try {
                 VonixCore.LOGGER.info("Connecting to Discord...");
-                new DiscordApiBuilder()
+                java.util.concurrent.CompletableFuture<DiscordApi> loginFuture = new DiscordApiBuilder()
                         .setToken(token)
                         .setAllIntentsExcept(Intent.GUILD_PRESENCES, Intent.GUILD_MEMBERS) // Optimized intents
-                        .login()
-                        .thenAcceptAsync(apiInstance -> {
+                        .login();
+
+                VonixCore.LOGGER.info("Discord login requested. Waiting for response...");
+
+                loginFuture.thenAcceptAsync(apiInstance -> {
                             this.api = apiInstance;
                             this.isConnected = true;
                             VonixCore.LOGGER.info("Connected to Discord as {}", api.getYourself().getDiscriminatedName());
