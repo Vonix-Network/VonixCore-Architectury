@@ -83,6 +83,8 @@ shadowJar {
     relocate 'okhttp3', 'network.vonix.vonixcore.shadow.okhttp3'
     relocate 'okio', 'network.vonix.vonixcore.shadow.okio'
     relocate 'com.fasterxml.jackson', 'network.vonix.vonixcore.shadow.jackson'
+    
+    mergeServiceFiles()
 }
 
 remapJar {
