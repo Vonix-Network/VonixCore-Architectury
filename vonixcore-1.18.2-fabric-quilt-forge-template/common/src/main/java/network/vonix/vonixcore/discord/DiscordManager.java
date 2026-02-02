@@ -100,31 +100,36 @@ public class DiscordManager {
         VonixCore.executeAsync(() -> {
             try {
                 VonixCore.LOGGER.info("Connecting to Discord...");
-                api = new DiscordApiBuilder()
+                new DiscordApiBuilder()
                         .setToken(token)
                         .setAllIntentsExcept(Intent.GUILD_PRESENCES, Intent.GUILD_MEMBERS) // Optimized intents
                         .login()
-                        .join();
-                
-                if (api == null) {
-                    VonixCore.LOGGER.error("Discord API instance is null after login!");
-                    return;
-                }
+                        .thenAcceptAsync(apiInstance -> {
+                            this.api = apiInstance;
+                            this.isConnected = true;
+                            VonixCore.LOGGER.info("Connected to Discord as {}", api.getYourself().getDiscriminatedName());
 
-                isConnected = true;
-                VonixCore.LOGGER.info("Connected to Discord as {}", api.getYourself().getDiscriminatedName());
+                            try {
+                                setupChannels();
+                                setupWebhooks();
+                                setupListeners();
+                                updateStatus();
 
-                setupChannels();
-                setupWebhooks();
-                setupListeners();
-                updateStatus();
-
-                if (DiscordConfig.CONFIG.sendJoin.get()) {
-                    sendServerStatusMessage("Server Started", "The Minecraft server has started.", 0x00FF00); // Green
-                }
+                                if (DiscordConfig.CONFIG.sendJoin.get()) {
+                                    sendServerStatusMessage("Server Started", "The Minecraft server has started.", 0x00FF00); // Green
+                                }
+                            } catch (Exception e) {
+                                VonixCore.LOGGER.error("Error setting up Discord resources", e);
+                            }
+                        }, VonixCore.ASYNC_EXECUTOR)
+                        .exceptionally(throwable -> {
+                            VonixCore.LOGGER.error("Failed to connect to Discord", throwable);
+                            this.isConnected = false;
+                            return null;
+                        });
 
             } catch (Exception e) {
-                VonixCore.LOGGER.error("Failed to connect to Discord", e);
+                VonixCore.LOGGER.error("Failed to initiate Discord connection", e);
                 isConnected = false;
             }
         });
