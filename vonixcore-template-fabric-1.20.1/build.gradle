@@ -1,0 +1,158 @@
+plugins {
+	id 'fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	// Fabric repositories are added automatically
+	// LuckPerms API
+	maven {
+		name = 'LuckPerms'
+		url = 'https://repo.lucko.me/'
+	}
+	// Maven Central for other deps
+	mavenCentral()
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"vonixcore" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+dependencies {
+	// Minecraft and Fabric
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings loom.officialMojangMappings()
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	
+	// ========================================
+	// Database Dependencies (Jar-in-Jar bundled)
+	// ========================================
+	
+	// HikariCP for efficient connection pooling
+	include implementation('com.zaxxer:HikariCP:5.1.0')
+	
+	// SQLite JDBC driver for embedded database support
+	include implementation('org.xerial:sqlite-jdbc:3.45.1.0')
+	
+	// SLF4J API (required by HikariCP) - provided by Minecraft, don't include
+	compileOnly 'org.slf4j:slf4j-api:2.0.9'
+
+	// ========================================
+	// Discord Integration Dependencies (Jar-in-Jar bundled)
+	// ========================================
+	
+	// Javacord for Discord Bot API
+	include(implementation('org.javacord:javacord:3.8.0') {
+		exclude group: 'org.apache.logging.log4j', module: 'log4j-api'
+		exclude group: 'org.slf4j', module: 'slf4j-api'
+	})
+	
+	// Javacord modules
+	include implementation('org.javacord:javacord-api:3.8.0') {
+		exclude group: 'org.apache.logging.log4j', module: 'log4j-api'
+		exclude group: 'org.slf4j', module: 'slf4j-api'
+	}
+	include implementation('org.javacord:javacord-core:3.8.0') {
+		exclude group: 'org.apache.logging.log4j', module: 'log4j-api'
+		exclude group: 'org.slf4j', module: 'slf4j-api'
+	}
+	
+	// OkHttp for webhook requests
+	include implementation('com.squareup.okhttp3:okhttp:4.12.0')
+	include implementation('com.squareup.okio:okio-jvm:3.9.0')
+	include implementation('com.squareup.okio:okio:3.9.0')
+	include implementation('com.squareup.okhttp3:logging-interceptor:4.12.0')
+	
+	// Kotlin stdlib required by OkHttp 4.x
+	include implementation('org.jetbrains.kotlin:kotlin-stdlib:1.9.22')
+	include implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22')
+	include implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22')
+	
+	// Jackson for JSON processing (Javacord transitive)
+	include implementation('com.fasterxml.jackson.core:jackson-databind:2.17.0')
+	include implementation('com.fasterxml.jackson.core:jackson-core:2.17.0')
+	include implementation('com.fasterxml.jackson.core:jackson-annotations:2.17.0')
+	
+	// Javacord transitive dependencies
+	include implementation('io.vavr:vavr:0.10.4')
+	include implementation('io.vavr:vavr-match:0.10.4')
+	include implementation('com.neovisionaries:nv-websocket-client:2.14')
+	
+	// XSalsa20Poly1305 encryption (Javacord voice support)
+	include implementation('com.codahale:xsalsa20poly1305:0.11.0')
+	include implementation('org.bouncycastle:bcprov-jdk18on:1.78.1')
+	
+	// YAML config support
+	include implementation('org.yaml:snakeyaml:2.2')
+	
+	// Gson for JSON (used by Discord webhooks) - Minecraft provides this, don't include
+	compileOnly 'com.google.code.gson:gson:2.10.1'
+	
+	// LuckPerms API (optional)
+	compileOnly 'net.luckperms:api:5.4'
+}
+
+processResources {
+	inputs.property "version", project.version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": inputs.properties.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 17
+	it.options.encoding = 'UTF-8'
+}
+
+java {
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
+}
+
+jar {
+	inputs.property "archivesName", project.base.archivesName
+
+	from("LICENSE") {
+		rename { "${it}_${inputs.properties.archivesName}"}
+	}
+	
+	manifest {
+		attributes([
+			'Implementation-Title': project.archives_base_name,
+			'Implementation-Version': project.version,
+			'Implementation-Vendor': 'Vonix Network'
+		])
+	}
+}
+
+// Maven publishing
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			artifactId = project.archives_base_name
+			from components.java
+		}
+	}
+
+	repositories {
+		// Add repositories to publish to here.
+	}
+}

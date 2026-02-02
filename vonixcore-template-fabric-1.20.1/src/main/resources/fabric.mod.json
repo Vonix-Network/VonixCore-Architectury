@@ -1,0 +1,49 @@
+{
+	"schemaVersion": 1,
+	"id": "vonixcore",
+	"version": "${version}",
+	"name": "VonixCore",
+	"description": "All-in-one essentials mod featuring homes, warps, economy, kits, TPA, Discord integration, block protection logging, claims, jobs, and more. Highly configurable with multi-database support.",
+	"authors": [
+		"Vonix Network"
+	],
+	"contact": {
+		"homepage": "https://vonix.network/",
+		"sources": "https://github.com/Vonix-Network/VonixCore",
+		"issues": "https://github.com/Vonix-Network/VonixCore/issues"
+	},
+	"license": "MIT",
+	"icon": "assets/vonixcore/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"network.vonix.vonixcore.VonixCore"
+		],
+		"client": [
+			"network.vonix.vonixcore.VonixCoreClient"
+		],
+		"server": [
+			"network.vonix.vonixcore.VonixCoreServer"
+		]
+	},
+	"mixins": [
+		"vonixcore.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.16.0",
+		"minecraft": "~1.20.1",
+		"java": ">=17",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"luckperms": "*"
+	},
+	"custom": {
+		"modmenu": {
+			"links": {
+				"modmenu.discord": "https://discord.gg/vonix",
+				"modmenu.website": "https://vonix.network/"
+			}
+		}
+	}
+}

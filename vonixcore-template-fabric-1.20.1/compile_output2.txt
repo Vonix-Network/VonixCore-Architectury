@@ -1,0 +1,122 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Fabric Loom: 1.9.2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using of the official minecraft mappings is at your own risk!
+Please make sure to read and understand the following license:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# (c) 2020 Microsoft Corporation. These mappings are provided "as-is" and you bear the risk of using them. You may copy and use the mappings for development purposes, but you may not redistribute the mappings complete and unmodified. Microsoft makes no warranties, express or implied, with respect to the mappings provided here.  Use and modification of this document or the source code (in any form) of Minecraft: Java Edition is governed by the Minecraft End User License Agreement available at https://account.mojang.com/documents/minecraft_eula.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+:remapping 54 mods from modImplementation (java-api)
+:remapping sources
+
+> Task :compileJava
+C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\AuthConfig.java:20: error: load(Path) in AuthConfig cannot override load(Path) in BaseConfig
+    public static void load(Path configDir) {
+                       ^
+  overriding method is static
+C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\ClaimsConfig.java:20: error: load(Path) in ClaimsConfig cannot override load(Path) in BaseConfig
+    public static void load(Path configDir) {
+                       ^
+  overriding method is static
+C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\DatabaseConfig.java:27: error: load(Path) in DatabaseConfig cannot override load(Path) in BaseConfig
+    public static void load(Path configDir) {
+                       ^
+  overriding method is static
+C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\DiscordConfig.java:20: error: load(Path) in DiscordConfig cannot override load(Path) in BaseConfig
+    public static void load(Path configDir) {
+                       ^
+  overriding method is static
+C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\EssentialsConfig.java:20: error: load(Path) in EssentialsConfig cannot override load(Path) in BaseConfig
+    public static void load(Path configDir) {
+                       ^
+  overriding method is static
+C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\ProtectionConfig.java:20: error: load(Path) in ProtectionConfig cannot override load(Path) in BaseConfig
+    public static void load(Path configDir) {
+                       ^
+  overriding method is static
+C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\ShopsConfig.java:24: error: load(Path) in ShopsConfig cannot override load(Path) in BaseConfig
+    public static void load(Path configDir) {
+                       ^
+  overriding method is static
+C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\XPSyncConfig.java:20: error: load(Path) in XPSyncConfig cannot override load(Path) in BaseConfig
+    public static void load(Path configDir) {
+                       ^
+  overriding method is static
+C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\VonixCore.java:125: error: cannot find symbol
+            if (environment.dedicated || !environment.integrated) {
+                           ^
+  symbol:   variable dedicated
+  location: variable environment of type CommandSelection
+C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\VonixCore.java:125: error: cannot find symbol
+            if (environment.dedicated || !environment.integrated) {
+                                                     ^
+  symbol:   variable integrated
+  location: variable environment of type CommandSelection
+Note: C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\teleport\TeleportManager.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+10 errors
+
+> Task :compileJava FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/rwcoo/Developement/VonixCore/vonixcore-template-fabric-1.20.1/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler output below.
+  Note: C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\teleport\TeleportManager.java uses or overrides a deprecated API.
+  Note: Recompile with -Xlint:deprecation for details.
+  C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\VonixCore.java:125: error: cannot find symbol
+              if (environment.dedicated || !environment.integrated) {
+                             ^
+    symbol:   variable dedicated
+    location: variable environment of type CommandSelection
+  C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\VonixCore.java:125: error: cannot find symbol
+              if (environment.dedicated || !environment.integrated) {
+                                                       ^
+    symbol:   variable integrated
+    location: variable environment of type CommandSelection
+  C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\AuthConfig.java:20: error: load(Path) in AuthConfig cannot override load(Path) in BaseConfig
+      public static void load(Path configDir) {
+                         ^
+    overriding method is static
+  C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\ClaimsConfig.java:20: error: load(Path) in ClaimsConfig cannot override load(Path) in BaseConfig
+      public static void load(Path configDir) {
+                         ^
+    overriding method is static
+  C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\DatabaseConfig.java:27: error: load(Path) in DatabaseConfig cannot override load(Path) in BaseConfig
+      public static void load(Path configDir) {
+                         ^
+    overriding method is static
+  C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\DiscordConfig.java:20: error: load(Path) in DiscordConfig cannot override load(Path) in BaseConfig
+      public static void load(Path configDir) {
+                         ^
+    overriding method is static
+  C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\EssentialsConfig.java:20: error: load(Path) in EssentialsConfig cannot override load(Path) in BaseConfig
+      public static void load(Path configDir) {
+                         ^
+    overriding method is static
+  C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\ProtectionConfig.java:20: error: load(Path) in ProtectionConfig cannot override load(Path) in BaseConfig
+      public static void load(Path configDir) {
+                         ^
+    overriding method is static
+  C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\ShopsConfig.java:24: error: load(Path) in ShopsConfig cannot override load(Path) in BaseConfig
+      public static void load(Path configDir) {
+                         ^
+    overriding method is static
+  C:\Users\rwcoo\Developement\VonixCore\vonixcore-template-fabric-1.20.1\src\main\java\network\vonix\vonixcore\config\XPSyncConfig.java:20: error: load(Path) in XPSyncConfig cannot override load(Path) in BaseConfig
+      public static void load(Path configDir) {
+                         ^
+    overriding method is static
+  10 errors
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to generate a Build Scan (powered by Develocity).
+
+BUILD FAILED in 1m 43s
+1 actionable task: 1 executed
