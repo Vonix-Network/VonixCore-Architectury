@@ -1,6 +1,7 @@
 package network.vonix.vonixcore.fabric.mixin;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ServerboundChatPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import network.vonix.vonixcore.VonixCore;
@@ -17,6 +18,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Mixin to intercept chat messages and apply custom formatting while cancelling
  * vanilla broadcast.
+ * 1.18.2 version - uses handleChat(ServerboundChatPacket) since
+ * PlayerChatMessage doesn't exist.
  */
 @Mixin(ServerGamePacketListenerImpl.class)
 public abstract class ServerGamePacketListenerMixin {
@@ -25,19 +28,18 @@ public abstract class ServerGamePacketListenerMixin {
     public ServerPlayer player;
 
     /**
-     * Intercept chat broadcast to apply custom formatting and cancel vanilla.
-     * This targets the method that broadcasts the chat message to all players.
+     * Intercept chat handling to apply custom formatting and cancel vanilla.
+     * In 1.18.2, we target handleChat which receives the ServerboundChatPacket.
      */
-    @Inject(method = "broadcastChatMessage", at = @At("HEAD"), cancellable = true)
-    private void vonixcore$onBroadcastChatMessage(net.minecraft.network.chat.PlayerChatMessage message,
-            CallbackInfo ci) {
+    @Inject(method = "handleChat(Lnet/minecraft/network/protocol/game/ServerboundChatPacket;)V", at = @At("HEAD"), cancellable = true)
+    private void vonixcore$onHandleChat(ServerboundChatPacket packet, CallbackInfo ci) {
         // Only intercept if essentials is enabled and chat formatting is enabled
         if (!EssentialsConfig.CONFIG.enabled.get() || !EssentialsConfig.CONFIG.chatFormattingEnabled.get()) {
             return;
         }
 
         try {
-            String rawMessage = message.signedContent();
+            String rawMessage = packet.getMessage();
 
             // Format the message with prefix/suffix
             Component formatted = ChatFormatter.formatChatMessage(player, rawMessage);
@@ -65,7 +67,7 @@ public abstract class ServerGamePacketListenerMixin {
                 }
             }
 
-            // Cancel the vanilla broadcast
+            // Cancel the vanilla handling
             ci.cancel();
         } catch (Exception e) {
             VonixCore.LOGGER.error("[VonixCore] Error in chat mixin", e);

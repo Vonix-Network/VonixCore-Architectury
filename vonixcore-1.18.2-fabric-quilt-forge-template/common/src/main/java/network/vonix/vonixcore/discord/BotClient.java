@@ -18,7 +18,6 @@ public class BotClient {
 
     private DiscordApi api;
     private String token;
-    private String channelId;
     private Consumer<MessageCreateEvent> messageHandler;
 
     public BotClient() {
@@ -31,7 +30,8 @@ public class BotClient {
 
     public CompletableFuture<Void> connect(String token, String channelId) {
         this.token = token;
-        this.channelId = channelId;
+        // channelId is passed but not stored - filtering is done in
+        // DiscordManager.onDiscordMessage
         return connect();
     }
 
