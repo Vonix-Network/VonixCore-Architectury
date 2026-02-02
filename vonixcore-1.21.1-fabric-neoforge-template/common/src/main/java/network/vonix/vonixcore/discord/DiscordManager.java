@@ -103,6 +103,11 @@ public class DiscordManager {
                         .login()
                         .join();
 
+                if (api == null) {
+                    VonixCore.LOGGER.error("Discord API instance is null after login!");
+                    return;
+                }
+
                 isConnected = true;
                 VonixCore.LOGGER.info("Connected to Discord as {}", api.getYourself().getDiscriminatedName());
 

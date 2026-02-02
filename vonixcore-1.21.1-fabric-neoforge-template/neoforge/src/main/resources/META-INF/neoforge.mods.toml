@@ -7,9 +7,9 @@ license = "Insert License Here"
 modId = "vonixcore"
 version = "${version}"
 displayName = "VonixCore"
-authors = "Me!"
+authors = "Vonix Network"
 description = '''
-This is an example description! Tell everyone what your mod is about!
+VonixCore - Advanced Minecraft server management with Discord integration, cross-server chat, and comprehensive player tracking.
 '''
 #logoFile = ""
 

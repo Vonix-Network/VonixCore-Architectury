@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -243,7 +244,7 @@ public class XPSyncManager {
                         continue;
                     }
 
-                    CompoundTag nbt = NbtIo.readCompressed(datFile);
+                    CompoundTag nbt = NbtIo.readCompressed(datFile.toPath(), NbtAccounter.unlimitedHeap());
 
                     if (nbt == null)
                         continue;

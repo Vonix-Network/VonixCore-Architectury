@@ -3,9 +3,9 @@
   "id": "vonixcore",
   "version": "${version}",
   "name": "VonixCore",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "description": "VonixCore - Advanced Minecraft server management with Discord integration, cross-server chat, and comprehensive player tracking.",
   "authors": [
-    "Me!"
+    "Vonix Network"
   ],
   "contact": {
     "homepage": "https://vonix.network",

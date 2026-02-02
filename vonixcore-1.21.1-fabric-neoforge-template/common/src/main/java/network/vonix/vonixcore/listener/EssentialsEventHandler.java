@@ -75,14 +75,18 @@ public class EssentialsEventHandler {
                 // Format the message with prefix/suffix
                 Component formatted = ChatFormatter.formatChatMessage(serverPlayer, rawMessage);
 
-                // Manually broadcast the formatted message to all players (tellraw style)
-                // We iterate over all players to emulate broadcast
-                for (ServerPlayer p : serverPlayer.server.getPlayerList().getPlayers()) {
-                    p.sendSystemMessage(formatted);
+                // Manually broadcast the formatted message to all players
+                serverPlayer.server.getPlayerList().broadcastSystemMessage(formatted, false);
+                
+                // Send to Discord
+                try {
+                    if (network.vonix.vonixcore.discord.DiscordManager.getInstance().isRunning()) {
+                        network.vonix.vonixcore.discord.DiscordManager.getInstance()
+                            .sendChatMessage(serverPlayer.getName().getString(), rawMessage, serverPlayer.getStringUUID());
+                    }
+                } catch (Exception e) {
+                    VonixCore.LOGGER.error("Failed to send chat to Discord", e);
                 }
-
-                // Log to console
-                serverPlayer.server.sendSystemMessage(formatted);
 
                 // Cancel the original event to prevent default rendering
                 return EventResult.interruptTrue();

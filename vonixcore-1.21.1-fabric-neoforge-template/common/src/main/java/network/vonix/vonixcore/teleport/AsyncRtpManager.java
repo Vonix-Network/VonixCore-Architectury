@@ -12,7 +12,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap;
 import network.vonix.vonixcore.VonixCore;
 import network.vonix.vonixcore.config.EssentialsConfig;
@@ -273,7 +273,7 @@ public class AsyncRtpManager {
                             scheduleMainThread(level.getServer(), () -> {
                                 chunkSource.removeRegionTicket(RTP_TICKET, pos, 0, pos);
                             });
-                            future.complete(either.left().orElse(null));
+                            future.complete(either.orElse(null));
                         })
                         .exceptionally(ex -> {
                             scheduleMainThread(level.getServer(), () -> {
@@ -317,7 +317,7 @@ public class AsyncRtpManager {
 
             // Force chunk to FULL status with validation
             ChunkAccess targetChunk = level.getChunk(safePos);
-            if (targetChunk == null || !targetChunk.getStatus().isOrAfter(ChunkStatus.FULL)) {
+            if (targetChunk == null || !targetChunk.getPersistedStatus().isOrAfter(ChunkStatus.FULL)) {
                 VonixCore.LOGGER.warn("[RTP] Target chunk not fully loaded, attempting force load");
                 // Force generation if needed
                 chunkSource.getChunkFuture(chunkPos.x, chunkPos.z, ChunkStatus.FULL, true)

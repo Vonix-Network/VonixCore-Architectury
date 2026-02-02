@@ -3,23 +3,23 @@
   "id": "vonixcore",
   "version": "${version}",
   "name": "VonixCore",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "description": "VonixCore - Advanced Minecraft server management with Discord integration, cross-server chat, and comprehensive player tracking.",
   "authors": [
-    "Me!"
+    "Vonix Network"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://vonix.network",
+    "sources": "https://github.com/Vonix-Network/VonixCore-Architectury"
   },
   "license": "CC0-1.0",
   "icon": "assets/vonixcore/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "network.vonix.vonixcore.fabric.ExampleModFabric"
+      "network.vonix.vonixcore.fabric.VonixCoreFabric"
     ],
     "client": [
-      "network.vonix.vonixcore.fabric.client.ExampleModFabricClient"
+      "network.vonix.vonixcore.fabric.client.VonixCoreFabricClient"
     ]
   },
   "mixins": [

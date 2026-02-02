@@ -681,6 +681,6 @@ public class UtilityCommands {
      * Get player ping in milliseconds
      */
     private static int getPlayerPing(ServerPlayer player) {
-        return player.latency;
+        return player.connection.latency();
     }
 }
