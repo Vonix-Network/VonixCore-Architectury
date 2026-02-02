@@ -48,6 +48,8 @@ public class DiscordManager {
     private final EventDataExtractor eventExtractor;
     private final VanillaComponentBuilder componentBuilder;
     private boolean isConnected = false;
+    private static final int MAX_RETRIES = 5;
+    private static final long INITIAL_RETRY_DELAY_MS = 5000;
 
     private DiscordManager() {
         this.httpClient = new OkHttpClient.Builder()
@@ -94,42 +96,62 @@ public class DiscordManager {
             return;
         }
 
-        VonixCore.executeAsync(() -> {
-            try {
+        VonixCore.executeAsync(() -> connect(0, token));
+    }
+
+    private void connect(int attempt, String token) {
+        try {
+            if (attempt == 0) {
                 VonixCore.LOGGER.info("Connecting to Discord...");
-                new DiscordApiBuilder()
-                        .setToken(token)
-                        .setAllIntentsExcept(Intent.GUILD_PRESENCES, Intent.GUILD_MEMBERS) // Optimized intents
-                        .login()
-                        .thenAcceptAsync(apiInstance -> {
-                            this.api = apiInstance;
-                            this.isConnected = true;
-                            VonixCore.LOGGER.info("Connected to Discord as {}", api.getYourself().getDiscriminatedName());
-
-                            try {
-                                setupChannels();
-                                setupWebhooks();
-                                setupListeners();
-                                updateStatus();
-
-                                if (DiscordConfig.CONFIG.sendJoin.get()) {
-                                    sendServerStatusMessage("Server Started", "The Minecraft server has started.", 0x00FF00); // Green
-                                }
-                            } catch (Exception e) {
-                                VonixCore.LOGGER.error("Error setting up Discord resources", e);
-                            }
-                        }, VonixCore.ASYNC_EXECUTOR)
-                        .exceptionally(throwable -> {
-                            VonixCore.LOGGER.error("Failed to connect to Discord", throwable);
-                            this.isConnected = false;
-                            return null;
-                        });
-
-            } catch (Exception e) {
-                VonixCore.LOGGER.error("Failed to initiate Discord connection", e);
-                isConnected = false;
+            } else {
+                VonixCore.LOGGER.info("Reconnecting to Discord (Attempt {}/{})", attempt + 1, MAX_RETRIES);
             }
-        });
+
+            new DiscordApiBuilder()
+                    .setToken(token)
+                    .setAllIntentsExcept(Intent.GUILD_PRESENCES, Intent.GUILD_MEMBERS) // Optimized intents
+                    .login()
+                    .thenAcceptAsync(apiInstance -> {
+                        this.api = apiInstance;
+                        this.isConnected = true;
+                        VonixCore.LOGGER.info("Connected to Discord as {}", api.getYourself().getDiscriminatedName());
+
+                        try {
+                            setupChannels();
+                            setupWebhooks();
+                            setupListeners();
+                            updateStatus();
+
+                            if (DiscordConfig.CONFIG.sendJoin.get()) {
+                                sendServerStatusMessage("Server Started", "The Minecraft server has started.", 0x00FF00); // Green
+                            }
+                        } catch (Exception e) {
+                            VonixCore.LOGGER.error("Error setting up Discord resources", e);
+                        }
+                    }, VonixCore.ASYNC_EXECUTOR)
+                    .exceptionally(throwable -> {
+                        VonixCore.LOGGER.error("Failed to connect to Discord", throwable);
+                        this.isConnected = false;
+
+                        if (attempt < MAX_RETRIES) {
+                            long delay = INITIAL_RETRY_DELAY_MS * (attempt + 1);
+                            VonixCore.LOGGER.info("Retrying connection in {} ms...", delay);
+                            try {
+                                Thread.sleep(delay);
+                            } catch (InterruptedException e) {
+                                return null;
+                            }
+                            connect(attempt + 1, token);
+                        } else {
+                            VonixCore.LOGGER.error("Failed to connect to Discord after {} attempts. Giving up.", MAX_RETRIES);
+                        }
+                        return null;
+                    });
+
+        } catch (Exception e) {
+            VonixCore.LOGGER.error("Failed to initiate Discord connection", e);
+            isConnected = false;
+        }
     }
 
     /**

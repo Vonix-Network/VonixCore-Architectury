@@ -630,6 +630,28 @@ dependencies {
 *Last Updated: 2026-02-01*
 *Author: Architect Mode*
 
+## 15. Phase 6: Final Polish and Fixes (Completed 2026-02-02)
+
+### 15.1 Build System & Dependency Management
+- **Shadow Relocation**: Implemented extensive relocation for `org.javacord`, `okhttp3`, `kotlin`, `com.fasterxml.jackson`, and `org.json` to prevent classpath conflicts with other mods.
+- **Resource Invalidation**: Added `inputs.property 'build_time', System.currentTimeMillis()` to `processResources` tasks to force `mods.toml` / `fabric.mod.json` updates on every build.
+- **Verification**: Verified successful builds (`./gradlew clean build`) for:
+  - 1.18.2 (Fabric/Forge)
+  - 1.20.1 (Fabric/Forge/Quilt)
+  - 1.21.1 (Fabric/NeoForge)
+
+### 15.2 Discord Integration Stability
+- **Connection Retry Logic**: Implemented exponential backoff for Discord connection (up to 5 retries) to handle server startup race conditions or temporary network issues.
+- **Async Initialization**: Moved `DiscordApi.login()` to `thenAcceptAsync` to prevent blocking the main server thread during startup (fixing the "Connecting to Discord..." hang).
+- **Hybrid Architecture**: Confirmed and implemented hybrid approach:
+  - **Bot (Javacord)**: Used for receiving events and sending rich Embeds (avoiding webhook rate limits).
+  - **Webhooks**: Used for player chat messages (preserving player avatars/names).
+
+### 15.3 Version-Specific Fixes
+- **1.21.1**: Updated `AsyncRtpManager` to use `net.minecraft.world.level.chunk.status.ChunkStatus` (package move).
+- **1.21.1**: Removed deprecated `FMLJavaModLoadingContext.get().getModEventBus()` usage in NeoForge platform.
+- **1.20.1**: Fixed `NbtIo` signature changes in `XPSyncManager`.
+
 ## Executive Summary
 
 This document outlines the comprehensive plan for porting VonixCore from a Forge-only mod to a multi-platform mod using Architectury API. The port will support:

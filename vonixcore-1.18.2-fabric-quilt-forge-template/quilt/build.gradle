@@ -48,6 +48,7 @@ dependencies {
 processResources {
     inputs.property 'group', project.group
     inputs.property 'version', project.version
+    inputs.property 'build_time', System.currentTimeMillis()
 
     filesMatching('quilt.mod.json') {
         expand group: project.group, version: project.version
@@ -57,6 +58,14 @@ processResources {
 shadowJar {
     configurations = [project.configurations.shadowBundle]
     archiveClassifier = 'dev-shadow'
+    relocate 'org.javacord', 'network.vonix.vonixcore.shadow.javacord'
+    relocate 'okhttp3', 'network.vonix.vonixcore.shadow.okhttp3'
+    relocate 'okio', 'network.vonix.vonixcore.shadow.okio'
+    relocate 'com.fasterxml.jackson', 'network.vonix.vonixcore.shadow.jackson'
+    relocate 'com.zaxxer.hikari', 'network.vonix.vonixcore.shadow.hikari'
+    relocate 'io.vavr', 'network.vonix.vonixcore.shadow.vavr'
+    relocate 'com.neovisionaries.ws', 'network.vonix.vonixcore.shadow.nvwebsocket'
+    relocate 'org.bouncycastle', 'network.vonix.vonixcore.shadow.bouncycastle'
 }
 
 remapJar {
