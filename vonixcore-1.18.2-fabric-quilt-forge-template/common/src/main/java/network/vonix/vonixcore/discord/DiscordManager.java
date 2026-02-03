@@ -4,11 +4,11 @@ import com.google.gson.JsonObject;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextComponent;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
-import net.minecraft.network.chat.TextComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import network.vonix.vonixcore.VonixCore;
@@ -367,14 +367,108 @@ public class DiscordManager {
 
     /**
      * Fallback embed display when parsing fails.
+     * Implements multi-strategy fallback for production stability.
      */
     private void handleEmbedFallback(Embed embed, org.javacord.api.event.message.MessageCreateEvent event) {
-        Component fallback = MessageConverter.toMinecraft(event.getMessage());
-        if (server != null) {
-            server.execute(() -> {
-                server.getPlayerList().broadcastMessage(fallback, net.minecraft.network.chat.ChatType.SYSTEM,
-                        net.minecraft.Util.NIL_UUID);
+        // Strategy 1: Try to convert embed to readable Minecraft component
+        try {
+            MutableComponent convertedComponent = convertEmbedToMinecraftComponent(embed, event);
+            if (convertedComponent != null && server != null) {
+                server.execute(() -> {
+                    server.getPlayerList().broadcastMessage(convertedComponent,
+                            net.minecraft.network.chat.ChatType.SYSTEM, net.minecraft.Util.NIL_UUID);
+                });
+                if (DiscordConfig.CONFIG.debugLogging.get()) {
+                    VonixCore.LOGGER.debug("[Discord] Used embed conversion fallback");
+                }
+                return;
+            }
+        } catch (Exception e) {
+            VonixCore.LOGGER.warn("[Discord] Embed conversion fallback failed: {}", e.getMessage());
+        }
+
+        // Strategy 2: Ultimate fallback - use MessageConverter
+        try {
+            Component fallback = MessageConverter.toMinecraft(event.getMessage());
+            if (server != null) {
+                server.execute(() -> {
+                    server.getPlayerList().broadcastMessage(fallback, net.minecraft.network.chat.ChatType.SYSTEM,
+                            net.minecraft.Util.NIL_UUID);
+                });
+            }
+        } catch (Exception e) {
+            VonixCore.LOGGER.error("[Discord] All fallback strategies failed for embed", e);
+        }
+    }
+
+    /**
+     * Converts a Discord embed to a Minecraft component for fallback display.
+     * Extracts author, title, fields, and description into readable format.
+     */
+    private MutableComponent convertEmbedToMinecraftComponent(Embed embed,
+            org.javacord.api.event.message.MessageCreateEvent event) {
+        if (embed == null) {
+            return null;
+        }
+
+        try {
+            StringBuilder content = new StringBuilder();
+
+            // Add Author if present
+            embed.getAuthor().ifPresent(author -> {
+                String authorName = author.getName();
+                if (authorName != null && !authorName.trim().isEmpty()) {
+                    content.append(authorName.trim()).append(" ");
+                }
             });
+
+            // Add Title if present
+            embed.getTitle().ifPresent(title -> {
+                if (!title.trim().isEmpty()) {
+                    content.append(title.trim()).append(" ");
+                }
+            });
+
+            // Parse Fields
+            for (org.javacord.api.entity.message.embed.EmbedField field : embed.getFields()) {
+                String fieldName = field.getName();
+                String fieldValue = field.getValue();
+                if (fieldName != null && fieldValue != null &&
+                        !fieldName.trim().isEmpty() && !fieldValue.trim().isEmpty()) {
+                    content.append("[").append(fieldName.trim()).append(": ")
+                            .append(fieldValue.trim()).append("] ");
+                }
+            }
+
+            // Add Description
+            embed.getDescription().ifPresent(desc -> {
+                if (!desc.trim().isEmpty()) {
+                    content.append(desc.trim());
+                }
+            });
+
+            String text = content.toString().trim();
+            if (text.isEmpty()) {
+                return null;
+            }
+
+            // Get server prefix from author
+            String authorName = event.getMessageAuthor().getDisplayName();
+            String formattedMessage;
+            if (authorName != null && authorName.startsWith("[") && authorName.contains("]")) {
+                int endBracket = authorName.indexOf("]");
+                String prefix = authorName.substring(0, endBracket + 1);
+                formattedMessage = "§a" + prefix + " §f" + text;
+            } else {
+                String serverPrefix = DiscordConfig.CONFIG.serverPrefix.get();
+                formattedMessage = "§a[" + serverPrefix + "] §f" + text;
+            }
+
+            return (MutableComponent) toMinecraftComponentWithLinks(formattedMessage);
+
+        } catch (Exception e) {
+            VonixCore.LOGGER.error("[Discord] Error converting embed to component: {}", e.getMessage());
+            return null;
         }
     }
 
