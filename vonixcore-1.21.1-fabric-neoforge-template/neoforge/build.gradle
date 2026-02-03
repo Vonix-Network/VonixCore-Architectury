@@ -69,6 +69,11 @@ processResources {
 shadowJar {
     configurations = [project.configurations.shadowBundle]
     archiveClassifier = 'dev-shadow'
+    
+    // Exclude logging libraries that conflict with Minecraft's module system
+    exclude 'org/slf4j/**'
+    exclude 'org/apache/logging/**'
+    
     relocate 'org.javacord', 'network.vonix.vonixcore.shadow.javacord'
     relocate 'okhttp3', 'network.vonix.vonixcore.shadow.okhttp3'
     relocate 'okio', 'network.vonix.vonixcore.shadow.okio'
