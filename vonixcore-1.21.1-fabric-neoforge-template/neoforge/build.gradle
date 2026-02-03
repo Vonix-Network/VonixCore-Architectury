@@ -73,6 +73,14 @@ shadowJar {
     // Exclude logging libraries that conflict with Minecraft's module system
     exclude 'org/slf4j/**'
     exclude 'org/apache/logging/**'
+
+    // Exclude module-info.class to prevent module conflicts with shadowed libraries (Jackson, etc.)
+    exclude 'module-info.class'
+    exclude 'META-INF/versions/**'
+    exclude 'META-INF/proguard/**'
+    exclude 'META-INF/maven/**'
+    exclude 'META-INF/LICENSE*'
+    exclude 'META-INF/NOTICE*'
     
     relocate 'org.javacord', 'network.vonix.vonixcore.shadow.javacord'
     relocate 'okhttp3', 'network.vonix.vonixcore.shadow.okhttp3'
