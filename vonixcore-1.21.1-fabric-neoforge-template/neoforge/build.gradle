@@ -41,7 +41,10 @@ dependencies {
     shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
 
     // Explicitly include dependencies for shadowing
-    shadowBundle "org.javacord:javacord:3.8.0"
+    shadowBundle("org.javacord:javacord:3.8.0") {
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-api'
+        exclude group: 'org.slf4j', module: 'slf4j-api'
+    }
     shadowBundle "com.squareup.okhttp3:okhttp:4.12.0"
     shadowBundle "com.squareup.okio:okio-jvm:3.9.0"
     shadowBundle "com.squareup.okio:okio:3.9.0"
