@@ -218,6 +218,40 @@ public class DiscordManager {
             }
         }
 
+        // Generic Embed Handling: If content is empty but we have embeds, try to
+        // convert them to text
+        if (content.isEmpty() && !message.getEmbeds().isEmpty()) {
+            Embed embed = message.getEmbeds().get(0);
+            MutableComponent converted = convertEmbedToMinecraftComponent(embed, event);
+            if (converted != null) {
+                content = converted.getString(); // Approximate text representation
+
+                // Manual text extraction to ensure better formatting preservation
+                StringBuilder embedContent = new StringBuilder();
+                embed.getAuthor().ifPresent(a -> embedContent.append(a.getName()).append(" "));
+                embed.getTitle().ifPresent(t -> {
+                    String s = t.replaceAll("[^a-zA-Z ]", "").trim();
+                    if (!s.equalsIgnoreCase("Player Joined") && !s.equalsIgnoreCase("Player Left")
+                            && !s.equalsIgnoreCase("Player Died")) {
+                        embedContent.append(t).append(" ");
+                    }
+                });
+                embed.getDescription().ifPresent(d -> embedContent.append(d).append(" "));
+                for (org.javacord.api.entity.message.embed.EmbedField field : embed.getFields()) {
+                    String fieldName = field.getName();
+                    if ((fieldName.equalsIgnoreCase("Server") || fieldName.equalsIgnoreCase("Message")) &&
+                            !embed.getTitle().map(t -> t.contains("List") || t.contains("Status")).orElse(false) &&
+                            !embed.getFooter()
+                                    .map(f -> f.getText().map(text -> text.contains("Player List")).orElse(false))
+                                    .orElse(false)) {
+                        continue;
+                    }
+                    embedContent.append("[").append(fieldName).append(": ").append(field.getValue()).append("] ");
+                }
+                content = embedContent.toString().trim();
+            }
+        }
+
         // Regular message processing
         if (server != null) {
             MutableComponent finalComponent = Component.empty();
@@ -760,8 +794,19 @@ public class DiscordManager {
             if (server == null) {
                 return;
             }
-            org.javacord.api.entity.message.embed.EmbedBuilder embed = buildPlayerListEmbed();
-            event.getChannel().sendMessage(embed);
+            int online = server.getPlayerList().getPlayerCount();
+            int max = server.getPlayerList().getMaxPlayers();
+            String message = "There are " + online + "/" + max + " players online.";
+
+            // Send to Discord via Webhook (Text) for compatibility
+            sendSystemMessage(message);
+
+            // Broadcast locally
+            String serverName = DiscordConfig.CONFIG.serverName.get();
+            MutableComponent component = Component.literal("[Discord] " + serverName + ": " + message)
+                    .withStyle(ChatFormatting.AQUA);
+            server.execute(() -> server.getPlayerList().broadcastSystemMessage(component, false));
+
         } catch (Exception e) {
             VonixCore.LOGGER.error("[Discord] Error handling !list command", e);
         }
