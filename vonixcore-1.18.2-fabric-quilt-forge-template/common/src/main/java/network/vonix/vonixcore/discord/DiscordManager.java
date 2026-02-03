@@ -23,8 +23,11 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.javacord.api.event.message.MessageCreateEvent;
 
 /**
  * Main coordinator for Discord integration.
@@ -214,6 +217,11 @@ public class DiscordManager {
                 // Check for event embeds (join/leave/death)
                 if (eventDetector.isEventEmbed(embed)) {
                     processEventEmbed(embed, event);
+                    return;
+                }
+                // Check for Player List system embeds
+                if (isPlayerListEmbed(embed)) {
+                    processPlayerListEmbed(embed, event);
                     return;
                 }
             }
@@ -835,6 +843,63 @@ public class DiscordManager {
             }
         }
         return url;
+    }
+
+    private boolean isPlayerListEmbed(Embed embed) {
+        return embed.getFooter().map(f -> f.getText().map(text -> text.contains("Player List")).orElse(false))
+                .orElse(false) ||
+                embed.getTitle().map(t -> t.contains("List") || t.contains("Status")).orElse(false);
+    }
+
+    private void processPlayerListEmbed(Embed embed, MessageCreateEvent event) {
+        try {
+            // Extract Server Name logic
+            String serverName = "Unknown Server";
+            if (embed.getAuthor().isPresent()) {
+                serverName = embed.getAuthor().get().getName();
+            } else if (embed.getTitle().isPresent()) {
+                serverName = embed.getTitle().get();
+            }
+
+            // Extract content logic
+            String description = embed.getDescription().orElse("");
+            String message;
+
+            if (description.contains("No players are currently online")) {
+                message = "0 Players: No players online";
+            } else {
+                String[] lines = description.split("\n");
+                String countStr = "";
+                List<String> players = new ArrayList<>();
+
+                for (String line : lines) {
+                    if (line.trim().startsWith("Players")) {
+                        countStr = line.trim().replace("Players", "").trim();
+                    } else if (line.trim().startsWith("-")) {
+                        players.add(line.trim().substring(1).trim());
+                    }
+                }
+
+                if (!countStr.isEmpty()) {
+                    String playerList = String.join(", ", players);
+                    message = countStr + ": " + playerList;
+                } else {
+                    message = "Online: " + description;
+                }
+            }
+
+            String formatted = "§a[" + serverName + "] §f" + message;
+
+            if (server != null) {
+                server.execute(() -> server.getPlayerList().broadcastMessage(
+                        toMinecraftComponentWithLinks(formatted),
+                        net.minecraft.network.chat.ChatType.SYSTEM,
+                        net.minecraft.Util.NIL_UUID));
+            }
+
+        } catch (Exception e) {
+            VonixCore.LOGGER.error("[Discord] Error processing player list embed", e);
+        }
     }
 
     public MinecraftServer getServer() {
