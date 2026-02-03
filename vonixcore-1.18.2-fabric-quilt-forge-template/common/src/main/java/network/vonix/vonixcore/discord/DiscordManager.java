@@ -1,13 +1,21 @@
 package network.vonix.vonixcore.discord;
 
 import com.google.gson.JsonObject;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.network.chat.TextComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import network.vonix.vonixcore.VonixCore;
 import network.vonix.vonixcore.config.DiscordConfig;
 import network.vonix.vonixcore.platform.Platform;
 import org.javacord.api.entity.message.Message;
+import org.javacord.api.entity.message.embed.Embed;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -15,6 +23,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Main coordinator for Discord integration.
@@ -26,6 +36,16 @@ public class DiscordManager {
     private final BotClient botClient;
     private final WebhookClient webhookClient;
     private final MessageConverter messageConverter;
+
+    // Embed detection and processing
+    private final EventEmbedDetector eventDetector = new EventEmbedDetector();
+    private final AdvancementEmbedDetector advancementDetector = new AdvancementEmbedDetector();
+    private final EventDataExtractor eventExtractor = new EventDataExtractor();
+    private final AdvancementDataExtractor advancementExtractor = new AdvancementDataExtractor();
+    private final VanillaComponentBuilder componentBuilder = new VanillaComponentBuilder();
+
+    // Pattern for Discord markdown links
+    private static final Pattern DISCORD_MARKDOWN_LINK = Pattern.compile("\\[([^\\]]+)]\\((https?://[^)]+)\\)");
 
     // Server reference
     private MinecraftServer server;
@@ -142,6 +162,12 @@ public class DiscordManager {
             return;
         }
 
+        // Handle !list command early (before any filtering)
+        if (message.getContent().trim().equalsIgnoreCase("!list")) {
+            handleTextListCommand(event);
+            return;
+        }
+
         // If it's an event channel message, check if we should show other server events
         if (isEventChannel && !DiscordConfig.CONFIG.showOtherServerEvents.get()) {
             return;
@@ -160,29 +186,266 @@ public class DiscordManager {
             String serverPrefix = DiscordConfig.CONFIG.serverPrefix.get();
             if (serverPrefix != null && !serverPrefix.isEmpty()) {
                 String authorName = message.getAuthor().getDisplayName();
-                // Check if author name starts with our prefix (e.g., "[HomeStead]SomePlayer")
                 if (authorName.startsWith(serverPrefix)) {
-                    return; // Skip - this is our own message echoing back
+                    return;
                 }
-                // Also check webhook username format
                 String webhookFormat = DiscordConfig.CONFIG.webhookUsernameFormat.get();
                 if (webhookFormat != null && webhookFormat.contains("{prefix}")) {
                     String expectedStart = webhookFormat.split("\\{prefix\\}")[0] + serverPrefix;
                     if (authorName.startsWith(expectedStart) || authorName.startsWith(serverPrefix)) {
-                        return; // Skip - this is our own message
+                        return;
                     }
                 }
             }
         }
 
-        // Convert to Minecraft Component
-        Component chatComponent = MessageConverter.toMinecraft(message);
+        boolean isWebhook = message.getAuthor().isWebhook();
+        String authorName = message.getAuthor().getDisplayName();
+        String content = message.getContent();
 
-        // Broadcast to server
-        server.execute(() -> {
-            server.getPlayerList().broadcastMessage(chatComponent, net.minecraft.network.chat.ChatType.SYSTEM,
-                    net.minecraft.Util.NIL_UUID);
-        });
+        // Check for embeds that need special processing
+        if (!message.getEmbeds().isEmpty()) {
+            for (Embed embed : message.getEmbeds()) {
+                // Check for advancement embeds first
+                if (advancementDetector.isAdvancementEmbed(embed)) {
+                    processAdvancementEmbed(embed, event);
+                    return;
+                }
+                // Check for event embeds (join/leave/death)
+                if (eventDetector.isEventEmbed(embed)) {
+                    processEventEmbed(embed, event);
+                    return;
+                }
+            }
+        }
+
+        // Regular message processing
+        if (server != null) {
+            MutableComponent finalComponent = new TextComponent("");
+
+            if (isWebhook) {
+                // Cross-server webhook: special formatting WITHOUT [Discord] prefix
+                // Format: [ServerPrefix] Username: message
+                String displayName = authorName;
+                String cleanedContent = content;
+
+                // Remove duplicate username from content if present (webhook quirk)
+                if (content.startsWith(authorName + ": ")) {
+                    cleanedContent = content.substring(authorName.length() + 2);
+                } else if (content.startsWith(authorName + " ")) {
+                    cleanedContent = content.substring(authorName.length() + 1);
+                }
+
+                String formattedMessage;
+                if (displayName.startsWith("[") && displayName.contains("]")) {
+                    int endBracket = displayName.indexOf("]");
+                    String serverPrefix = displayName.substring(0, endBracket + 1);
+                    String remainingName = displayName.substring(endBracket + 1).trim();
+
+                    // Check if event channel
+                    String eventChanId = DiscordConfig.CONFIG.eventChannelId.get();
+                    boolean isEvtChannel = eventChanId != null && !eventChanId.isEmpty()
+                            && eventChanId.equals(msgChannelId);
+
+                    if (isEvtChannel) {
+                        // Event channel: [Prefix] message (name is in message)
+                        formattedMessage = "§a" + serverPrefix + " §f" + cleanedContent;
+                    } else {
+                        // Chat: [Prefix] Name: message
+                        if (remainingName.isEmpty() || remainingName.toLowerCase().contains("server")) {
+                            formattedMessage = "§a" + serverPrefix + " §f" + cleanedContent;
+                        } else {
+                            formattedMessage = "§a" + serverPrefix + " §f" + remainingName + "§7: §f" + cleanedContent;
+                        }
+                    }
+                } else {
+                    // No bracket prefix found - treat as cross-server
+                    formattedMessage = "§a[Cross-Server] §f" + authorName + "§7: §f" + cleanedContent;
+                }
+
+                finalComponent.append(toMinecraftComponentWithLinks(formattedMessage));
+            } else {
+                // Regular Discord user: make [Discord] clickable
+                String inviteUrl = DiscordConfig.CONFIG.inviteUrl.get();
+                String rawFormat = DiscordConfig.CONFIG.discordToMinecraftFormat.get()
+                        .replace("{username}", authorName)
+                        .replace("{message}", content);
+
+                if (rawFormat.contains("[Discord]") && inviteUrl != null && !inviteUrl.isEmpty()) {
+                    String[] parts = rawFormat.split("\\[Discord\\]", 2);
+
+                    // Part before [Discord]
+                    if (parts.length > 0 && !parts[0].isEmpty()) {
+                        finalComponent.append(toMinecraftComponentWithLinks(parts[0]));
+                    }
+
+                    // Clickable [Discord] with aqua color
+                    finalComponent.append(new TextComponent("[Discord]")
+                            .setStyle(Style.EMPTY
+                                    .withColor(TextColor.parseColor("aqua"))
+                                    .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, inviteUrl))
+                                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                            new TextComponent("Click to join our Discord!")))));
+
+                    // Part after [Discord]
+                    if (parts.length > 1 && !parts[1].isEmpty()) {
+                        finalComponent.append(toMinecraftComponentWithLinks(parts[1]));
+                    }
+                } else {
+                    // Fallback if no [Discord] tag or no invite URL
+                    finalComponent.append(toMinecraftComponentWithLinks(rawFormat));
+                }
+            }
+
+            // Broadcast to server
+            server.execute(() -> {
+                server.getPlayerList().broadcastMessage(finalComponent, net.minecraft.network.chat.ChatType.SYSTEM,
+                        net.minecraft.Util.NIL_UUID);
+            });
+        }
+    }
+
+    /**
+     * Processes an event embed (join/leave/death) and broadcasts as vanilla-style
+     * message.
+     */
+    private void processEventEmbed(Embed embed, org.javacord.api.event.message.MessageCreateEvent event) {
+        try {
+            EventData data = eventExtractor.extractFromEmbed(embed);
+            String serverPrefix = extractServerPrefixFromAuthor(event.getMessageAuthor().getDisplayName());
+
+            MutableComponent eventComponent = componentBuilder.buildEventMessage(data, serverPrefix);
+
+            if (server != null) {
+                server.execute(() -> {
+                    server.getPlayerList().broadcastMessage(eventComponent, net.minecraft.network.chat.ChatType.SYSTEM,
+                            net.minecraft.Util.NIL_UUID);
+                });
+                if (DiscordConfig.CONFIG.debugLogging.get()) {
+                    VonixCore.LOGGER.debug("[Discord] Processed event embed: {} {}",
+                            data.getPlayerName(), data.getActionString());
+                }
+            }
+        } catch (ExtractionException e) {
+            VonixCore.LOGGER.warn("[Discord] Failed to extract event data: {}", e.getMessage());
+            // Fallback to regular embed display
+            handleEmbedFallback(embed, event);
+        } catch (Exception e) {
+            VonixCore.LOGGER.error("[Discord] Error processing event embed", e);
+            handleEmbedFallback(embed, event);
+        }
+    }
+
+    /**
+     * Processes an advancement embed and broadcasts as vanilla-style message.
+     */
+    private void processAdvancementEmbed(Embed embed, org.javacord.api.event.message.MessageCreateEvent event) {
+        try {
+            AdvancementData data = advancementExtractor.extractFromEmbed(embed);
+            String serverPrefix = extractServerPrefixFromAuthor(event.getMessageAuthor().getDisplayName());
+
+            MutableComponent advComponent = componentBuilder.buildAdvancementMessage(data, serverPrefix);
+
+            if (server != null) {
+                server.execute(() -> {
+                    server.getPlayerList().broadcastMessage(advComponent, net.minecraft.network.chat.ChatType.SYSTEM,
+                            net.minecraft.Util.NIL_UUID);
+                });
+                if (DiscordConfig.CONFIG.debugLogging.get()) {
+                    VonixCore.LOGGER.debug("[Discord] Processed advancement embed: {} - {}",
+                            data.getPlayerName(), data.getAdvancementTitle());
+                }
+            }
+        } catch (ExtractionException e) {
+            VonixCore.LOGGER.warn("[Discord] Failed to extract advancement data: {}", e.getMessage());
+            handleEmbedFallback(embed, event);
+        } catch (Exception e) {
+            VonixCore.LOGGER.error("[Discord] Error processing advancement embed", e);
+            handleEmbedFallback(embed, event);
+        }
+    }
+
+    /**
+     * Fallback embed display when parsing fails.
+     */
+    private void handleEmbedFallback(Embed embed, org.javacord.api.event.message.MessageCreateEvent event) {
+        Component fallback = MessageConverter.toMinecraft(event.getMessage());
+        if (server != null) {
+            server.execute(() -> {
+                server.getPlayerList().broadcastMessage(fallback, net.minecraft.network.chat.ChatType.SYSTEM,
+                        net.minecraft.Util.NIL_UUID);
+            });
+        }
+    }
+
+    /**
+     * Extracts server prefix from webhook author name (e.g., "[HomeStead]" from
+     * "[HomeStead] Player").
+     */
+    private String extractServerPrefixFromAuthor(String authorName) {
+        if (authorName == null)
+            return "Cross-Server";
+
+        // Try to extract [Prefix] format
+        if (authorName.startsWith("[")) {
+            int endBracket = authorName.indexOf("]");
+            if (endBracket > 1) {
+                return authorName.substring(1, endBracket);
+            }
+        }
+        return "Cross-Server";
+    }
+
+    /**
+     * Converts text to Minecraft component, parsing Discord markdown links.
+     */
+    private Component toMinecraftComponentWithLinks(String text) {
+        if (text == null || text.isEmpty()) {
+            return new TextComponent("");
+        }
+
+        Matcher matcher = DISCORD_MARKDOWN_LINK.matcher(text);
+        MutableComponent result = new TextComponent("");
+        int lastEnd = 0;
+        boolean hasLink = false;
+
+        while (matcher.find()) {
+            int start = matcher.start();
+            int end = matcher.end();
+
+            if (start > lastEnd) {
+                String before = text.substring(lastEnd, start);
+                if (!before.isEmpty()) {
+                    result.append(new TextComponent(before));
+                }
+            }
+
+            String label = matcher.group(1);
+            String url = matcher.group(2);
+
+            Component linkComponent = new TextComponent(label)
+                    .withStyle(style -> style
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, url))
+                            .withUnderlined(true)
+                            .withColor(ChatFormatting.AQUA));
+
+            result.append(linkComponent);
+            lastEnd = end;
+            hasLink = true;
+        }
+
+        if (lastEnd < text.length()) {
+            String tail = text.substring(lastEnd);
+            if (!tail.isEmpty()) {
+                result.append(new TextComponent(tail));
+            }
+        }
+
+        if (!hasLink) {
+            return new TextComponent(text);
+        }
+
+        return result;
     }
 
     // =================================================================================
@@ -370,6 +633,51 @@ public class DiscordManager {
     // =================================================================================
     // Helpers & Getters
     // =================================================================================
+
+    /**
+     * Builds an embed displaying the list of online players.
+     */
+    private org.javacord.api.entity.message.embed.EmbedBuilder buildPlayerListEmbed() {
+        java.util.List<net.minecraft.server.level.ServerPlayer> players = server.getPlayerList().getPlayers();
+        int onlinePlayers = players.size();
+        int maxPlayers = server.getPlayerList().getMaxPlayers();
+
+        String serverName = DiscordConfig.CONFIG.serverName.get();
+
+        org.javacord.api.entity.message.embed.EmbedBuilder embed = new org.javacord.api.entity.message.embed.EmbedBuilder()
+                .setTitle("📋 " + serverName)
+                .setColor(java.awt.Color.GREEN)
+                .setFooter("VonixCore · Player List");
+
+        if (onlinePlayers == 0) {
+            embed.setDescription("No players are currently online.");
+        } else {
+            StringBuilder playerListBuilder = new StringBuilder();
+            for (int i = 0; i < players.size(); i++) {
+                if (i > 0)
+                    playerListBuilder.append("\n");
+                playerListBuilder.append("• ").append(players.get(i).getName().getString());
+            }
+            embed.addField("Players " + onlinePlayers + "/" + maxPlayers, playerListBuilder.toString(), false);
+        }
+
+        return embed;
+    }
+
+    /**
+     * Handles the !list text command from Discord.
+     */
+    private void handleTextListCommand(org.javacord.api.event.message.MessageCreateEvent event) {
+        try {
+            if (server == null) {
+                return;
+            }
+            org.javacord.api.entity.message.embed.EmbedBuilder embed = buildPlayerListEmbed();
+            event.getChannel().sendMessage(embed);
+        } catch (Exception e) {
+            VonixCore.LOGGER.error("[Discord] Error handling !list command", e);
+        }
+    }
 
     private String getAvatarUrl(String username) {
         String url = DiscordConfig.CONFIG.avatarUrl.get().replace("{username}", username);

@@ -4,7 +4,8 @@
     "package": "network.vonix.vonixcore.fabric.mixin",
     "compatibilityLevel": "JAVA_17",
     "mixins": [
-        "ServerGamePacketListenerMixin"
+        "ServerGamePacketListenerMixin",
+        "PlayerAdvancementsMixin"
     ],
     "client": [],
     "server": [],
