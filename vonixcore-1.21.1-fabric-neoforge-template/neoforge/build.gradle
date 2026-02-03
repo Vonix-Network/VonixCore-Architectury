@@ -39,6 +39,19 @@ dependencies {
 
     common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
+
+    // Explicitly include dependencies for shadowing
+    shadowBundle "org.javacord:javacord:3.8.0"
+    shadowBundle "com.squareup.okhttp3:okhttp:4.12.0"
+    shadowBundle "com.squareup.okio:okio-jvm:3.9.0"
+    shadowBundle "com.squareup.okio:okio:3.9.0"
+    shadowBundle "com.fasterxml.jackson.core:jackson-databind:2.17.0"
+    shadowBundle "com.fasterxml.jackson.core:jackson-core:2.17.0"
+    shadowBundle "com.fasterxml.jackson.core:jackson-annotations:2.17.0"
+    shadowBundle "io.vavr:vavr:0.10.4"
+    shadowBundle "com.neovisionaries:nv-websocket-client:2.14"
+    shadowBundle "com.zaxxer:HikariCP:5.1.0"
+    shadowBundle "org.bouncycastle:bcprov-jdk18on:1.78.1"
 }
 
 processResources {
