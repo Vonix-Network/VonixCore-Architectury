@@ -1,0 +1,278 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.8/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Java: 21.0.8, JVM: 21.0.8+12-LTS-250 (Oracle Corporation), Arch: amd64
+
+> Task :compileJava
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:32: error: class, interface, enum, or record expected
+private static final Map<Integer,NonNullList<ItemStack>>containerSnapshots=new ConcurrentHashMap<>();
+                     ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:37: error: class, interface, enum, or record expected
+@SubscribeEvent public static void onContainerOpen(PlayerContainerEvent.Open event){if(!ProtectionConfig.CONFIG.enabled.get()||!ProtectionConfig.CONFIG.logContainerTransactions.get())return;
+                              ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:40: error: class, interface, enum, or record expected
+ServerPlayer player=(ServerPlayer)event.getEntity();AbstractContainerMenu container=event.getContainer();
+^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:40: error: class, interface, enum, or record expected
+ServerPlayer player=(ServerPlayer)event.getEntity();AbstractContainerMenu container=event.getContainer();
+                                                    ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:43: error: class, interface, enum, or record expected
+NonNullList<ItemStack>items=NonNullList.create();for(Slot slot:container.slots){items.add(slot.getItem().copy());}
+^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:43: error: class, interface, enum, or record expected
+NonNullList<ItemStack>items=NonNullList.create();for(Slot slot:container.slots){items.add(slot.getItem().copy());}
+                                                 ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:43: error: class, interface, enum, or record expected
+NonNullList<ItemStack>items=NonNullList.create();for(Slot slot:container.slots){items.add(slot.getItem().copy());}
+                                                                                                                 ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:45: error: class, interface, enum, or record expected
+containerSnapshots.put(container.containerId,items);}
+                                                    ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:50: error: class, interface, enum, or record expected
+@SubscribeEvent public static void onContainerClose(PlayerContainerEvent.Close event){if(!ProtectionConfig.CONFIG.enabled.get()||!ProtectionConfig.CONFIG.logContainerTransactions.get())return;
+                              ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:52: error: class, interface, enum, or record expected
+AbstractContainerMenu container=event.getContainer();NonNullList<ItemStack>oldItems=containerSnapshots.remove(container.containerId);
+^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:52: error: class, interface, enum, or record expected
+AbstractContainerMenu container=event.getContainer();NonNullList<ItemStack>oldItems=containerSnapshots.remove(container.containerId);
+                                                     ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:54: error: class, interface, enum, or record expected
+if(oldItems==null)return;
+^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:56: error: class, interface, enum, or record expected
+ServerPlayer player=(ServerPlayer)event.getEntity();String user=player.getName().getString();String world=getWorldName(player.level());BlockPos pos=player.blockPosition(); // Ideally
+^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:56: error: class, interface, enum, or record expected
+ServerPlayer player=(ServerPlayer)event.getEntity();String user=player.getName().getString();String world=getWorldName(player.level());BlockPos pos=player.blockPosition(); // Ideally
+                                                    ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:56: error: class, interface, enum, or record expected
+ServerPlayer player=(ServerPlayer)event.getEntity();String user=player.getName().getString();String world=getWorldName(player.level());BlockPos pos=player.blockPosition(); // Ideally
+                                                                                             ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:56: error: class, interface, enum, or record expected
+ServerPlayer player=(ServerPlayer)event.getEntity();String user=player.getName().getString();String world=getWorldName(player.level());BlockPos pos=player.blockPosition(); // Ideally
+                                                                                                                                       ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:71: error: class, interface, enum, or record expected
+long time=System.currentTimeMillis()/1000L;
+^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:74: error: class, interface, enum, or record expected
+for(int i=0;i<container.slots.size();i++){if(i>=oldItems.size())break;
+^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:74: error: class, interface, enum, or record expected
+for(int i=0;i<container.slots.size();i++){if(i>=oldItems.size())break;
+            ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:74: error: class, interface, enum, or record expected
+for(int i=0;i<container.slots.size();i++){if(i>=oldItems.size())break;
+                                     ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:76: error: class, interface, enum, or record expected
+ItemStack oldStack=oldItems.get(i);ItemStack newStack=container.slots.get(i).getItem();
+^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:76: error: class, interface, enum, or record expected
+ItemStack oldStack=oldItems.get(i);ItemStack newStack=container.slots.get(i).getItem();
+                                   ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:78: error: class, interface, enum, or record expected
+if(ItemStack.matches(oldStack,newStack))continue;
+^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:82: error: class, interface, enum, or record expected
+if(!newStack.isEmpty()&&(oldStack.isEmpty()||!ItemStack.isSameItemSameTags(oldStack,newStack)||newStack.getCount()>oldStack.getCount())){int amount=newStack.getCount()-(ItemStack.isSameItemSameTags(oldStack,newStack)?oldStack.getCount():0);
+^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:84: error: class, interface, enum, or record expected
+Consumer.getInstance().queueEntry(new ContainerLogEntry(time,user,world,pos.getX(),pos.getY(),pos.getZ(),"container",getItemName(newStack),amount,1));}
+^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:84: error: class, interface, enum, or record expected
+Consumer.getInstance().queueEntry(new ContainerLogEntry(time,user,world,pos.getX(),pos.getY(),pos.getZ(),"container",getItemName(newStack),amount,1));}
+                                                                                                                                                      ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:89: error: class, interface, enum, or record expected
+Consumer.getInstance().queueEntry(new ContainerLogEntry(time,user,world,pos.getX(),pos.getY(),pos.getZ(),"container",getItemName(oldStack),amount,0));}}}
+^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:89: error: class, interface, enum, or record expected
+Consumer.getInstance().queueEntry(new ContainerLogEntry(time,user,world,pos.getX(),pos.getY(),pos.getZ(),"container",getItemName(oldStack),amount,0));}}}
+                                                                                                                                                      ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:91: error: class, interface, enum, or record expected
+private static String getItemName(ItemStack stack){return net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem()).toString();}
+                                                                                                                                                 ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:137: error: class, interface, enum, or record expected
+    public static void onEntityDeath(LivingDeathEvent event) {
+                  ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:140: error: class, interface, enum, or record expected
+        if (!ProtectionConfig.CONFIG.logEntityKills.get())
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:143: error: class, interface, enum, or record expected
+        LivingEntity entity = event.getEntity();
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:144: error: class, interface, enum, or record expected
+        Level level = entity.level();
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:145: error: class, interface, enum, or record expected
+        if (level.isClientSide())
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:148: error: class, interface, enum, or record expected
+        if (event.getSource() == null || event.getSource().getEntity() == null)
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:152: error: class, interface, enum, or record expected
+        Entity killer = event.getSource().getEntity();
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:153: error: class, interface, enum, or record expected
+        if (!(killer instanceof ServerPlayer player))
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:156: error: class, interface, enum, or record expected
+        String user = player.getName().getString();
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:157: error: class, interface, enum, or record expected
+        String world = getWorldName(level);
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:158: error: class, interface, enum, or record expected
+        BlockPos pos = entity.blockPosition();
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:159: error: class, interface, enum, or record expected
+        long time = System.currentTimeMillis() / 1000L;
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:160: error: class, interface, enum, or record expected
+        String entityType = getEntityId(entity);
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:162: error: class, interface, enum, or record expected
+        Consumer.getInstance().queueEntry(new EntityLogEntry(
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:166: error: class, interface, enum, or record expected
+    }
+    ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:172: error: class, interface, enum, or record expected
+    public static void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
+                  ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:175: error: class, interface, enum, or record expected
+        if (!ProtectionConfig.CONFIG.logPlayerInteractions.get())
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:177: error: class, interface, enum, or record expected
+        if (event.getLevel().isClientSide())
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:179: error: class, interface, enum, or record expected
+        if (!(event.getEntity() instanceof ServerPlayer player))
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:186: error: class, interface, enum, or record expected
+        BlockPos pos = event.getPos();
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:187: error: class, interface, enum, or record expected
+        BlockState state = event.getLevel().getBlockState(pos);
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:188: error: class, interface, enum, or record expected
+        String blockType = getBlockId(state);
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:191: error: class, interface, enum, or record expected
+        if (!isInteractiveBlock(blockType))
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:194: error: class, interface, enum, or record expected
+        String user = player.getName().getString();
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:195: error: class, interface, enum, or record expected
+        String world = getWorldName(event.getLevel());
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:196: error: class, interface, enum, or record expected
+        long time = System.currentTimeMillis() / 1000L;
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:198: error: class, interface, enum, or record expected
+        Consumer.getInstance().queueEntry(new InteractionLogEntry(
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:202: error: class, interface, enum, or record expected
+    }
+    ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:208: error: class, interface, enum, or record expected
+    public static void onSignChange(BlockEvent.EntityPlaceEvent event) {
+                  ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:211: error: class, interface, enum, or record expected
+        if (!ProtectionConfig.CONFIG.logSigns.get())
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:213: error: class, interface, enum, or record expected
+        if (event.getLevel().isClientSide())
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:215: error: class, interface, enum, or record expected
+        if (!(event.getEntity() instanceof ServerPlayer player))
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:218: error: class, interface, enum, or record expected
+        BlockPos pos = event.getPos();
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:219: error: class, interface, enum, or record expected
+        BlockEntity blockEntity = event.getLevel().getBlockEntity(pos);
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:220: error: class, interface, enum, or record expected
+        if (!(blockEntity instanceof SignBlockEntity sign))
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:223: error: class, interface, enum, or record expected
+        String user = player.getName().getString();
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:224: error: class, interface, enum, or record expected
+        String world = getWorldName(event.getLevel());
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:225: error: class, interface, enum, or record expected
+        long time = System.currentTimeMillis() / 1000L;
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:228: error: class, interface, enum, or record expected
+        player.getServer().execute(() -> {
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:231: error: class, interface, enum, or record expected
+            for (int i = 0; i < 4; i++) {
+            ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:231: error: class, interface, enum, or record expected
+            for (int i = 0; i < 4; i++) {
+                            ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:231: error: class, interface, enum, or record expected
+            for (int i = 0; i < 4; i++) {
+                                   ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:233: error: class, interface, enum, or record expected
+                String line = lineComp.getString();
+                ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:234: error: class, interface, enum, or record expected
+                if (!line.isEmpty()) {
+                ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:237: error: class, interface, enum, or record expected
+                    text.append(line);
+                    ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:238: error: class, interface, enum, or record expected
+                }
+                ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:246: error: class, interface, enum, or record expected
+            }
+            ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:248: error: class, interface, enum, or record expected
+    }
+    ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:255: error: class, interface, enum, or record expected
+        }
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:257: error: class, interface, enum, or record expected
+    }
+    ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:261: error: class, interface, enum, or record expected
+        return key != null ? key.toString() : "minecraft:air";
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:262: error: class, interface, enum, or record expected
+    }
+    ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:266: error: class, interface, enum, or record expected
+        return key != null ? key.toString() : "unknown";
+        ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:267: error: class, interface, enum, or record expected
+    }
+    ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:286: error: class, interface, enum, or record expected
+    }
+    ^
+C:\Users\rwcoo\Developement\VonixCore\VonixCore-Forge-1.20.1\src\main\java\network\vonix\vonixcore\listener\ContainerLogEntry.java:393: error: class, interface, enum, or record expected
+}
+^
+85 errors
+
+> Task :compileJava FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
+> Run with --scan to get full insights.
+
+BUILD FAILED in 14s
+1 actionable task: 1 executed
