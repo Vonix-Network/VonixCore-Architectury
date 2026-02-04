@@ -51,9 +51,12 @@ public class EssentialsEventHandler {
         // Chat Formatting
         // On Fabric: Handled by mixin (ServerGamePacketListenerMixin) to prevent
         // duplicates
-        // On Forge/NeoForge: Handled here via Architectury event
+        // On Forge: Handled by Forge mixin to prevent duplicates
+        // On Quilt: Handled here via Architectury event
         ChatEvent.RECEIVED.register((player, component) -> {
-            if (network.vonix.vonixcore.platform.Platform.isFabric()) {
+            // Skip if platform has a mixin handling chat (Fabric and Forge)
+            if (network.vonix.vonixcore.platform.Platform.isFabric() ||
+                    network.vonix.vonixcore.platform.Platform.isForge()) {
                 return EventResult.pass();
             }
 
