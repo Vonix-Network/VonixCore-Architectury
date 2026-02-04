@@ -107,7 +107,6 @@ shadowJar {
     relocate 'kotlinx', 'network.vonix.vonixcore.shadow.kotlinx'
     relocate 'org.jetbrains', 'network.vonix.vonixcore.shadow.jetbrains'
     relocate 'org.intellij', 'network.vonix.vonixcore.shadow.intellij'
-    relocate 'org.sqlite', 'network.vonix.vonixcore.shadow.sqlite'
 }
 
 remapJar {
