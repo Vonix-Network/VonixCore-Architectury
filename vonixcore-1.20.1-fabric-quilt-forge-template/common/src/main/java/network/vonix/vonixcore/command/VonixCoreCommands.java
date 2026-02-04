@@ -297,6 +297,7 @@ public class VonixCoreCommands {
         dispatcher.register(Commands.literal("tpaccept").executes(VonixCoreCommands::tpAcceptCommand));
         dispatcher.register(Commands.literal("tpdeny").executes(VonixCoreCommands::tpDenyCommand));
         dispatcher.register(Commands.literal("back").executes(VonixCoreCommands::backCommand));
+        dispatcher.register(Commands.literal("backdeath").executes(VonixCoreCommands::backDeathCommand));
 
         dispatcher.register(Commands.literal("spawn").executes(VonixCoreCommands::spawnCommand));
     }
@@ -369,21 +370,43 @@ public class VonixCoreCommands {
 
         var loc = TeleportManager.getInstance().getLastLocation(player.getUUID());
         if (loc == null) {
-            player.sendSystemMessage(Component.literal("§c[VC] No location to return to."));
+            player.sendSystemMessage(
+                    Component.literal("§c[VC] No teleport location to return to. Use /backdeath for death locations."));
             return 0;
         }
 
-        // Check timeout
+        var server = ctx.getSource().getServer();
+        for (var level : server.getAllLevels()) {
+            if (level.dimension().location().toString().equals(loc.world())) {
+                TeleportManager.getInstance().teleportPlayer(player, level, loc.x(), loc.y(), loc.z(), loc.yaw(),
+                        loc.pitch());
+                player.sendSystemMessage(Component.literal("§a[VC] Returned to previous teleport location."));
+                return 1;
+            }
+        }
+        player.sendSystemMessage(Component.literal("§c[VC] Could not find the world for your previous location."));
+        return 0;
+    }
+
+    private static int backDeathCommand(CommandContext<CommandSourceStack> ctx) {
+        ServerPlayer player = ctx.getSource().getPlayer();
+        if (player == null)
+            return 0;
+
+        var loc = TeleportManager.getInstance().getDeathLocation(player.getUUID());
+        if (loc == null) {
+            player.sendSystemMessage(Component.literal("§c[VC] No death location to return to."));
+            return 0;
+        }
+
         // Check death back delay
-        if (loc.isDeath()) {
-            int delaySeconds = network.vonix.vonixcore.config.EssentialsConfig.CONFIG.deathBackDelay.get();
-            if (delaySeconds > 0) {
-                long elapsed = (System.currentTimeMillis() - loc.timestamp()) / 1000;
-                if (elapsed < delaySeconds) {
-                    ctx.getSource().sendFailure(Component.literal("§c[VC] You must wait " +
-                            formatTime((int) (delaySeconds - elapsed)) + " before returning to your death location."));
-                    return 0;
-                }
+        int delaySeconds = network.vonix.vonixcore.config.EssentialsConfig.CONFIG.deathBackDelay.get();
+        if (delaySeconds > 0) {
+            long elapsed = (System.currentTimeMillis() - loc.timestamp()) / 1000;
+            if (elapsed < delaySeconds) {
+                ctx.getSource().sendFailure(Component.literal("§c[VC] You must wait " +
+                        formatTime((int) (delaySeconds - elapsed)) + " before returning to your death location."));
+                return 0;
             }
         }
 
@@ -392,10 +415,11 @@ public class VonixCoreCommands {
             if (level.dimension().location().toString().equals(loc.world())) {
                 TeleportManager.getInstance().teleportPlayer(player, level, loc.x(), loc.y(), loc.z(), loc.yaw(),
                         loc.pitch());
-                player.sendSystemMessage(Component.literal("§a[VC] Returned to previous location."));
+                player.sendSystemMessage(Component.literal("§a[VC] Returned to death location."));
                 return 1;
             }
         }
+        player.sendSystemMessage(Component.literal("§c[VC] Could not find the world for your death location."));
         return 0;
     }
 

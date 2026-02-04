@@ -21,8 +21,10 @@ public class TeleportManager {
 
     // TPA requests: target -> requester
     private final Map<UUID, TpaRequest> tpaRequests = new ConcurrentHashMap<>();
-    // Last locations for /back
+    // Last teleport locations for /back (NOT deaths)
     private final Map<UUID, TeleportLocation> lastLocations = new ConcurrentHashMap<>();
+    // Death locations for /backdeath
+    private final Map<UUID, TeleportLocation> deathLocations = new ConcurrentHashMap<>();
     // Teleport cooldowns
     private final Map<UUID, Long> cooldowns = new ConcurrentHashMap<>();
 
@@ -35,14 +37,21 @@ public class TeleportManager {
 
     /**
      * Save player's current location for /back command.
+     * If isDeath is true, saves to death location storage instead.
      */
     public void saveLastLocation(ServerPlayer player, boolean isDeath) {
-        lastLocations.put(player.getUUID(), new TeleportLocation(
+        TeleportLocation loc = new TeleportLocation(
                 player.level().dimension().location().toString(),
                 player.getX(), player.getY(), player.getZ(),
                 player.getYRot(), player.getXRot(),
                 System.currentTimeMillis(),
-                isDeath));
+                isDeath);
+
+        if (isDeath) {
+            deathLocations.put(player.getUUID(), loc);
+        } else {
+            lastLocations.put(player.getUUID(), loc);
+        }
     }
 
     public void saveLastLocation(ServerPlayer player) {
@@ -50,10 +59,17 @@ public class TeleportManager {
     }
 
     /**
-     * Get player's last location.
+     * Get player's last teleport location (NOT death).
      */
     public TeleportLocation getLastLocation(UUID uuid) {
         return lastLocations.get(uuid);
+    }
+
+    /**
+     * Get player's last death location.
+     */
+    public TeleportLocation getDeathLocation(UUID uuid) {
+        return deathLocations.get(uuid);
     }
 
     /**
@@ -208,6 +224,7 @@ public class TeleportManager {
     public void clear() {
         tpaRequests.clear();
         lastLocations.clear();
+        deathLocations.clear();
         cooldowns.clear();
     }
 

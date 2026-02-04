@@ -3,6 +3,7 @@ package network.vonix.vonixcore.listener;
 import dev.architectury.event.EventResult;
 import dev.architectury.event.events.common.ChatEvent;
 import dev.architectury.event.events.common.CommandRegistrationEvent;
+import dev.architectury.event.events.common.EntityEvent;
 import dev.architectury.event.events.common.LifecycleEvent;
 import dev.architectury.event.events.common.PlayerEvent;
 import net.minecraft.network.chat.Component;
@@ -15,6 +16,7 @@ import network.vonix.vonixcore.command.WorldCommands;
 import network.vonix.vonixcore.config.EssentialsConfig;
 import network.vonix.vonixcore.permissions.PermissionCommands;
 import network.vonix.vonixcore.permissions.PermissionManager;
+import network.vonix.vonixcore.teleport.TeleportManager;
 
 import java.sql.Connection;
 
@@ -133,6 +135,15 @@ public class EssentialsEventHandler {
                 // Clear permission cache for this player
                 PermissionManager.getInstance().clearUserCache(serverPlayer.getUUID());
             }
+        });
+
+        // Save death location for /backdeath command
+        EntityEvent.LIVING_DEATH.register((entity, source) -> {
+            if (entity instanceof ServerPlayer serverPlayer) {
+                TeleportManager.getInstance().saveLastLocation(serverPlayer, true);
+                VonixCore.LOGGER.debug("[VonixCore] Saved death location for {}", serverPlayer.getName().getString());
+            }
+            return EventResult.pass();
         });
     }
 }
