@@ -1,0 +1,31 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/ACER/.gradle/wrapper/dists/gradle-8.14-bin/38aieal9i53h9rfe7vjup95b9/gradle-8.14/lib/native-platform-0.22-milestone-28.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+> Configure project :
+Architect Plugin: 3.4.162
+Architectury Loom: 1.11.458
+
+> Task :quilt:clean UP-TO-DATE
+> Task :forge:clean
+> Task :common:clean
+> Task :fabric:clean
+> Task :fabric:processResources
+> Task :fabric:processIncludeJars
+> Task :fabric:sourcesJar
+> Task :fabric:processTestResources NO-SOURCE
+> Task :fabric:validateAccessWidener NO-SOURCE
+
+> Task :common:compileJava
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :common:processResources
+> Task :common:classes
+> Task :common:jar
+^CTerminate batch job (Y/N)? 
+^C
