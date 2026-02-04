@@ -777,7 +777,7 @@ public class DiscordManager {
         org.javacord.api.entity.message.embed.EmbedBuilder embed = new org.javacord.api.entity.message.embed.EmbedBuilder()
                 .setTitle("📋 " + serverName)
                 .setColor(java.awt.Color.GREEN)
-                .setFooter("VonixCore - Player List");
+                .setFooter("VonixCore · Player List");
 
         if (onlinePlayers == 0) {
             embed.setDescription("No players are currently online.");
@@ -786,7 +786,7 @@ public class DiscordManager {
             for (int i = 0; i < players.size(); i++) {
                 if (i > 0)
                     playerListBuilder.append("\n");
-                playerListBuilder.append("- ").append(players.get(i).getName().getString());
+                playerListBuilder.append("• ").append(players.get(i).getName().getString());
             }
             embed.addField("Players " + onlinePlayers + "/" + maxPlayers, playerListBuilder.toString(), false);
         }
