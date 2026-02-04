@@ -786,7 +786,7 @@ public class DiscordManager {
             for (int i = 0; i < players.size(); i++) {
                 if (i > 0)
                     playerListBuilder.append("\n");
-                playerListBuilder.append("• ").append(players.get(i).getName().getString());
+                playerListBuilder.append("- ").append(players.get(i).getName().getString());
             }
             embed.addField("Players " + onlinePlayers + "/" + maxPlayers, playerListBuilder.toString(), false);
         }
