@@ -108,6 +108,12 @@ shadowJar {
     relocate 'kotlinx', 'network.vonix.vonixcore.shadow.kotlinx'
     relocate 'org.jetbrains', 'network.vonix.vonixcore.shadow.jetbrains'
     relocate 'org.intellij', 'network.vonix.vonixcore.shadow.intellij'
+
+    manifest {
+        attributes([
+            "MixinConfigs": "vonixcore.mixins.json,vonixcore.forge.mixins.json"
+        ])
+    }
 }
 
 remapJar {
