@@ -1,0 +1,55 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/ACER/.gradle/wrapper/dists/gradle-8.14-bin/38aieal9i53h9rfe7vjup95b9/gradle-8.14/lib/native-platform-0.22-milestone-28.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+> Configure project :
+Architect Plugin: 3.4.162
+Architectury Loom: 1.11.458
+
+> Task :forge:processResources
+> Task :forge:processIncludeJars UP-TO-DATE
+> Task :forge:sourcesJar UP-TO-DATE
+> Task :forge:processTestResources NO-SOURCE
+> Task :forge:validateAccessWidener NO-SOURCE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:jar UP-TO-DATE
+> Task :forge:compileJava UP-TO-DATE
+> Task :forge:classes
+> Task :forge:jar UP-TO-DATE
+> Task :forge:compileTestJava NO-SOURCE
+> Task :forge:remapSourcesJar UP-TO-DATE
+> Task :forge:testClasses UP-TO-DATE
+> Task :forge:test NO-SOURCE
+> Task :forge:check UP-TO-DATE
+
+> Task :common:transformProductionForge
+[Architectury Transformer] Read classpath in 9.784 s
+
+> Task :common:transformProductionForge FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/ACER/Desktop/Vonix-Network-Mods/vonixcore-architectury/vonixcore-1.18.2-fabric-quilt-forge-template/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:transformProductionForge'.
+> Failed to remap C:\Users\ACER\Desktop\Vonix-Network-Mods\vonixcore-architectury\vonixcore-1.18.2-fabric-quilt-forge-template\common\build\devlibs\vonixcore-common-1.1.0-dev.jar to C:\Users\ACER\Desktop\Vonix-Network-Mods\vonixcore-architectury\vonixcore-1.18.2-fabric-quilt-forge-template\common\build\libs\vonixcore-common-1.1.0-transformProductionForge.jar
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 23s
+10 actionable tasks: 2 executed, 8 up-to-date
