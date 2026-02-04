@@ -802,18 +802,10 @@ public class DiscordManager {
             if (server == null) {
                 return;
             }
-            int online = server.getPlayerList().getPlayerCount();
-            int max = server.getPlayerList().getMaxPlayers();
-            String message = "There are " + online + "/" + max + " players online.";
 
-            // Send to Discord via Webhook (Text) for compatibility
-            sendSystemMessage(message);
-
-            // Broadcast locally
-            String serverName = DiscordConfig.CONFIG.serverName.get();
-            MutableComponent component = Component.literal("[Discord] " + serverName + ": " + message)
-                    .withStyle(ChatFormatting.AQUA);
-            server.execute(() -> server.getPlayerList().broadcastSystemMessage(component, false));
+            // Build and send the rich embed
+            org.javacord.api.entity.message.embed.EmbedBuilder embed = buildPlayerListEmbed();
+            event.getChannel().sendMessage(embed);
 
         } catch (Exception e) {
             VonixCore.LOGGER.error("[Discord] Error handling !list command", e);
