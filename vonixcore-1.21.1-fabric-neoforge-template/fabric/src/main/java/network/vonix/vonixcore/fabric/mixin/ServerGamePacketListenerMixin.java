@@ -31,43 +31,51 @@ public abstract class ServerGamePacketListenerMixin {
     @Inject(method = "broadcastChatMessage", at = @At("HEAD"), cancellable = true)
     private void vonixcore$onBroadcastChatMessage(net.minecraft.network.chat.PlayerChatMessage message,
             CallbackInfo ci) {
-        // Only intercept if essentials is enabled and chat formatting is enabled
-        if (!EssentialsConfig.CONFIG.enabled.get() || !EssentialsConfig.CONFIG.chatFormattingEnabled.get()) {
-            return;
-        }
-
         try {
             String rawMessage = message.signedContent();
 
-            // Format the message with prefix/suffix
-            Component formatted = ChatFormatter.formatChatMessage(player, rawMessage);
+            // ALWAYS send to Discord (if running), regardless of chat formatting setting
+            sendToDiscordIfEnabled(rawMessage);
 
-            // Broadcast the formatted message to all players
-            player.server.getPlayerList().broadcastSystemMessage(formatted, false);
+            // Only apply custom chat formatting if essentials + chat formatting are enabled
+            if (EssentialsConfig.CONFIG.enabled.get() && EssentialsConfig.CONFIG.chatFormattingEnabled.get()) {
+                // Format the message with prefix/suffix
+                Component formatted = ChatFormatter.formatChatMessage(player, rawMessage);
 
-            // Send to Discord (with optional prefix filtering)
-            if (DiscordManager.getInstance().isRunning()) {
-                boolean shouldSendToDiscord = true;
+                // Broadcast the formatted message to all players
+                player.server.getPlayerList().broadcastSystemMessage(formatted, false);
 
-                // Check if chat filter is enabled and message starts with filter prefix
-                if (DiscordConfig.CONFIG.enableChatFilter.get()) {
-                    String filterPrefix = DiscordConfig.CONFIG.chatFilterPrefix.get();
-                    if (filterPrefix != null && !filterPrefix.isEmpty() && rawMessage.startsWith(filterPrefix)) {
-                        shouldSendToDiscord = false;
-                    }
-                }
-
-                if (shouldSendToDiscord) {
-                    DiscordManager.getInstance()
-                            .sendChatMessage(player.getName().getString(), rawMessage, player.getStringUUID());
-                }
+                // Cancel the vanilla broadcast since we handled it
+                ci.cancel();
             }
-
-            // Cancel the vanilla broadcast
-            ci.cancel();
+            // Otherwise let vanilla handle the chat broadcast normally
         } catch (Exception e) {
             VonixCore.LOGGER.error("[VonixCore] Error in chat mixin", e);
             // Let vanilla handle it if we fail
+        }
+    }
+
+    /**
+     * Send chat message to Discord if enabled, independent of chat formatting.
+     */
+    private void sendToDiscordIfEnabled(String rawMessage) {
+        if (!DiscordManager.getInstance().isRunning()) {
+            return;
+        }
+
+        boolean shouldSendToDiscord = true;
+
+        // Check if chat filter is enabled and message starts with filter prefix
+        if (DiscordConfig.CONFIG.enableChatFilter.get()) {
+            String filterPrefix = DiscordConfig.CONFIG.chatFilterPrefix.get();
+            if (filterPrefix != null && !filterPrefix.isEmpty() && rawMessage.startsWith(filterPrefix)) {
+                shouldSendToDiscord = false;
+            }
+        }
+
+        if (shouldSendToDiscord) {
+            DiscordManager.getInstance()
+                    .sendChatMessage(player.getName().getString(), rawMessage, player.getStringUUID());
         }
     }
 }

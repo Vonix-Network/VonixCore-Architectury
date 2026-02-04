@@ -38,9 +38,10 @@ public class AsyncRtpManager {
 
     private static final int MAX_ATTEMPTS = 50;
     private static final int CHUNK_LOAD_TIMEOUT_MS = 5000; // 5 seconds per chunk
-    
+
     // Custom ticket type for RTP chunk loading
-    private static final TicketType<ChunkPos> RTP_TICKET = TicketType.create("vonixcore_rtp", Comparator.comparingLong(ChunkPos::toLong), 20 * 5);
+    private static final TicketType<ChunkPos> RTP_TICKET = TicketType.create("vonixcore_rtp",
+            Comparator.comparingLong(ChunkPos::toLong), 20 * 5);
 
     // Dangerous blocks sets for O(1) lookup
     private static final Set<Block> DANGEROUS_GROUND_BLOCKS = Set.of(
@@ -61,7 +62,8 @@ public class AsyncRtpManager {
     // Track active players to prevent duplicates
     private static final Set<UUID> pendingPlayers = ConcurrentHashMap.newKeySet();
 
-    // Dedicated worker thread pool (2 threads: 1 processor, 1 for async chunk callbacks)
+    // Dedicated worker thread pool (2 threads: 1 processor, 1 for async chunk
+    // callbacks)
     private static final ExecutorService workerPool = Executors.newFixedThreadPool(2, r -> {
         Thread t = new Thread(r, "VonixCore-RTP-Worker");
         t.setDaemon(true);
@@ -321,8 +323,8 @@ public class AsyncRtpManager {
                 VonixCore.LOGGER.warn("[RTP] Target chunk not fully loaded, attempting force load");
                 // Force generation if needed
                 chunkSource.getChunkFuture(chunkPos.x, chunkPos.z, ChunkStatus.FULL, true)
-                    .orTimeout(10, TimeUnit.SECONDS)
-                    .join();
+                        .orTimeout(10, TimeUnit.SECONDS)
+                        .join();
             }
 
             // Validate the location is still safe before teleporting
@@ -337,7 +339,7 @@ public class AsyncRtpManager {
             // Perform teleport with safety checks
             player.teleportTo(level, safePos.getX() + 0.5, safePos.getY(), safePos.getZ() + 0.5,
                     player.getYRot(), player.getXRot());
-            
+
             player.sendSystemMessage(Component.literal(String.format(
                     "§aTeleported to §eX: %d, Y: %d, Z: %d §7(Attempts: %d)",
                     safePos.getX(), safePos.getY(), safePos.getZ(), attempts)));
@@ -361,10 +363,10 @@ public class AsyncRtpManager {
             BlockState spawnState = level.getBlockState(pos);
             BlockState aboveState = level.getBlockState(pos.above());
 
-            return groundState.isSolid() && 
-                   spawnState.isAir() && 
-                   aboveState.isAir() &&
-                   !DANGEROUS_GROUND_BLOCKS.contains(groundState.getBlock());
+            return groundState.isSolid() &&
+                    spawnState.isAir() &&
+                    aboveState.isAir() &&
+                    !DANGEROUS_GROUND_BLOCKS.contains(groundState.getBlock());
         } catch (Exception e) {
             VonixCore.LOGGER.warn("[RTP] Safety check failed: {}", e.getMessage());
             return false;
@@ -454,9 +456,9 @@ public class AsyncRtpManager {
             int localZ) {
         int minY = level.getMinBuildHeight();
         int maxY = level.getMaxBuildHeight();
-        
-        // Start at Y=100 as requested and search downward for first solid ground
-        int startY = Math.min(100, maxY - 2);
+
+        // Start at Y=200 as requested and search downward for first solid ground
+        int startY = Math.min(200, maxY - 2);
         int endY = Math.max(minY + 1, 80); // Don't go below Y=80 for safety
 
         // Enhanced safety check: look for solid ground with proper space
@@ -474,26 +476,26 @@ public class AsyncRtpManager {
                 }
             }
         }
-        
+
         // Fallback: if nothing found from Y=100 downward, try limited upward search
         int surface = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING, localX, localZ);
         if (surface > startY && surface <= maxY - 2) {
             int fallbackStart = Math.max(startY + 1, surface - 3);
             int fallbackEnd = Math.min(maxY - 2, surface + 3);
-            
+
             for (int y = fallbackStart; y <= fallbackEnd; y++) {
                 BlockPos localCheck = new BlockPos(localX, y, localZ);
                 if (isSafeGroundBlock(chunk, localCheck)) {
                     BlockPos localSpawn = new BlockPos(localX, y + 1, localZ);
                     BlockPos localAbove = new BlockPos(localX, y + 2, localZ);
                     if (isSafeAirSpace(chunk, localSpawn, localAbove) &&
-                        !isDangerousLocation(chunk, localSpawn)) {
+                            !isDangerousLocation(chunk, localSpawn)) {
                         return new BlockPos(x, y + 1, z);
                     }
                 }
             }
         }
-        
+
         return null;
     }
 
@@ -502,17 +504,17 @@ public class AsyncRtpManager {
      */
     private static boolean isSafeGroundBlock(ChunkAccess chunk, BlockPos pos) {
         BlockState state = chunk.getBlockState(pos);
-        return state.isSolidRender(chunk, pos) && 
-               !state.isAir() && 
-               !DANGEROUS_GROUND_BLOCKS.contains(state.getBlock());
+        return state.isSolidRender(chunk, pos) &&
+                !state.isAir() &&
+                !DANGEROUS_GROUND_BLOCKS.contains(state.getBlock());
     }
 
     /**
      * Check if there's safe air space for player.
      */
     private static boolean isSafeAirSpace(ChunkAccess chunk, BlockPos spawnPos, BlockPos abovePos) {
-        return chunk.getBlockState(spawnPos).isAir() && 
-               chunk.getBlockState(abovePos).isAir();
+        return chunk.getBlockState(spawnPos).isAir() &&
+                chunk.getBlockState(abovePos).isAir();
     }
 
     /**

@@ -459,8 +459,8 @@ public class AsyncRtpManager {
         int minY = level.getMinBuildHeight();
         int maxY = level.getMaxBuildHeight();
 
-        // Start at Y=100 as requested and search downward for first solid ground
-        int startY = Math.min(100, maxY - 2);
+        // Start at Y=200 as requested and search downward for first solid ground
+        int startY = Math.min(200, maxY - 2);
         int endY = Math.max(minY + 1, 80); // Don't go below Y=80 for safety
 
         // Enhanced safety check: look for solid ground with proper space

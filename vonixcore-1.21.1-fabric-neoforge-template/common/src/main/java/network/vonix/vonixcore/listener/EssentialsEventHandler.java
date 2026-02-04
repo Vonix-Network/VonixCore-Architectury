@@ -72,7 +72,7 @@ public class EssentialsEventHandler {
                 return EventResult.pass();
             }
 
-            if (!EssentialsConfig.CONFIG.enabled.get() || !EssentialsConfig.CONFIG.chatFormattingEnabled.get()) {
+            if (!EssentialsConfig.CONFIG.enabled.get()) {
                 return EventResult.pass();
             }
 
@@ -80,15 +80,8 @@ public class EssentialsEventHandler {
                 ServerPlayer serverPlayer = (ServerPlayer) player;
                 String rawMessage = component.getString();
 
-                // Format the message with prefix/suffix
-                Component formatted = ChatFormatter.formatChatMessage(serverPlayer, rawMessage);
-
-                // Manually broadcast the formatted message to all players
-                // Note: On Forge this might double-broadcast if not careful, but usually
-                // EventResult.interruptTrue() stops vanilla
-                serverPlayer.server.getPlayerList().broadcastSystemMessage(formatted, false);
-
-                // Send to Discord (with optional prefix filtering)
+                // Send to Discord (with optional prefix filtering) - INDEPENDENT of chat
+                // formatting
                 try {
                     if (network.vonix.vonixcore.discord.DiscordManager.getInstance().isRunning()) {
                         boolean shouldSendToDiscord = true;
@@ -113,8 +106,17 @@ public class EssentialsEventHandler {
                     VonixCore.LOGGER.error("Failed to send chat to Discord", e);
                 }
 
-                // Cancel the original event to prevent default rendering
-                return EventResult.interruptTrue();
+                // Check chat formatting
+                if (EssentialsConfig.CONFIG.chatFormattingEnabled.get()) {
+                    // Format the message with prefix/suffix
+                    Component formatted = ChatFormatter.formatChatMessage(serverPlayer, rawMessage);
+
+                    // Manually broadcast the formatted message to all players
+                    serverPlayer.server.getPlayerList().broadcastSystemMessage(formatted, false);
+
+                    // Cancel the original event to prevent default rendering
+                    return EventResult.interruptTrue();
+                }
             }
 
             return EventResult.pass();
