@@ -48,20 +48,6 @@ public class EssentialsEventHandler {
             VonixCore.LOGGER.info("[VonixCore] Essentials commands registered");
         });
 
-        // Initialize permission system on server start
-        LifecycleEvent.SERVER_STARTING.register(server -> {
-            if (!EssentialsConfig.CONFIG.enabled.get()) {
-                return;
-            }
-
-            try (Connection conn = VonixCore.getInstance().getDatabase().getConnection()) {
-                PermissionManager.getInstance().initialize(conn);
-                VonixCore.LOGGER.info("[VonixCore] Permission system initialized");
-            } catch (Exception e) {
-                VonixCore.LOGGER.error("[VonixCore] Failed to initialize permission system", e);
-            }
-        });
-
         // Chat Formatting
         // On Fabric: Handled by mixin (ServerGamePacketListenerMixin) to prevent
         // duplicates

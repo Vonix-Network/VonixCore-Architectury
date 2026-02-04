@@ -841,40 +841,61 @@ public class DiscordManager {
         try {
             // Extract Server Name logic
             String serverName = "Unknown Server";
-            if (embed.getAuthor().isPresent()) {
+            if (embed.getTitle().isPresent()) {
+                // Title is like "📋 ServerName"
+                serverName = embed.getTitle().get().replaceAll("^📋\\s*", "").trim();
+            } else if (embed.getAuthor().isPresent()) {
                 serverName = embed.getAuthor().get().getName();
-            } else if (embed.getTitle().isPresent()) {
-                serverName = embed.getTitle().get();
             }
 
-            // Extract content logic
-            String description = embed.getDescription().orElse("");
             String message;
+            String description = embed.getDescription().orElse("");
 
-            if (description.contains("No players are currently online")) {
+            // Check if no players online (message is in description)
+            if (description.contains("No players") || description.contains("no players")) {
                 message = "0 Players: No players online";
             } else {
-                String[] lines = description.split("\n");
-                String countStr = "";
+                // Players are in embed fields, not description
+                // Field format: name="Players X/Y", value="• Player1\n• Player2"
                 List<String> players = new ArrayList<>();
+                String countInfo = "";
 
-                for (String line : lines) {
-                    if (line.trim().startsWith("Players")) {
-                        countStr = line.trim().replace("Players", "").trim();
-                    } else if (line.trim().startsWith("-")) {
-                        players.add(line.trim().substring(1).trim());
+                for (org.javacord.api.entity.message.embed.EmbedField field : embed.getFields()) {
+                    String fieldName = field.getName();
+                    String fieldValue = field.getValue();
+
+                    // Check for player list field (e.g., "Players 3/20")
+                    if (fieldName != null && fieldName.startsWith("Players")) {
+                        // Extract count from field name
+                        countInfo = fieldName.replace("Players", "").trim();
+
+                        // Parse player names from field value (bullet list)
+                        if (fieldValue != null && !fieldValue.isEmpty()) {
+                            String[] lines = fieldValue.split("\n");
+                            for (String line : lines) {
+                                String cleaned = line.trim()
+                                        .replaceAll("^[•\\-*]\\s*", "") // Remove bullet points
+                                        .trim();
+                                if (!cleaned.isEmpty()) {
+                                    players.add(cleaned);
+                                }
+                            }
+                        }
                     }
                 }
 
-                if (!countStr.isEmpty()) {
+                if (!players.isEmpty()) {
                     String playerList = String.join(", ", players);
-                    message = countStr + ": " + playerList;
+                    message = countInfo + " Players: " + playerList;
+                } else if (!countInfo.isEmpty()) {
+                    message = countInfo + " Players: No players online";
                 } else {
-                    message = "Online: " + description;
+                    // Ultimate fallback - just show description
+                    message = description.isEmpty() ? "Player list unavailable" : description;
                 }
             }
 
-            String formatted = "§a[" + serverName + "] §f" + message;
+            String formatted = "§a[📋 " + serverName + "] §f" + message;
 
             if (server != null) {
                 server.execute(() -> server.getPlayerList().broadcastSystemMessage(
