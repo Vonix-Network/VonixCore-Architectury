@@ -2,7 +2,7 @@
     "required": true,
     "package": "network.vonix.vonixcore.forge.mixin",
     "compatibilityLevel": "JAVA_17",
-    "refmap": "vonixcore.forge.refmap.json",
+    "refmap": "vonixcore-forge-forge-refmap.json",
     "mixins": [
         "ServerGamePacketListenerMixin"
     ],
