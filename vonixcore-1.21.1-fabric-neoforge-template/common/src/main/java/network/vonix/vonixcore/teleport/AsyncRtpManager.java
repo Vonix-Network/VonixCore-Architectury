@@ -165,6 +165,7 @@ public class AsyncRtpManager {
         ServerLevel level = request.level;
         BlockPos center = request.center;
         UUID playerUuid = player.getUUID();
+        boolean teleportSuccess = false;
 
         try {
             AtomicInteger attemptCounter = new AtomicInteger(0);
@@ -210,35 +211,53 @@ public class AsyncRtpManager {
                 }
             }
 
+            // If no safe location found after all attempts, notify player
+            if (safePos == null) {
+                scheduleMainThread(player.getServer(), () -> {
+                    if (player.isAlive() && !player.hasDisconnected()) {
+                        player.sendSystemMessage(Component.literal(
+                                "§cCould not find a safe location after " + MAX_ATTEMPTS + " attempts!"));
+                    }
+                });
+                return;
+            }
+
             // Final teleport - must run on main thread
             final BlockPos finalPos = safePos;
             final int attempts = attemptCounter.get();
 
-            CompletableFuture<Void> teleportFuture = new CompletableFuture<>();
+            CompletableFuture<Boolean> teleportFuture = new CompletableFuture<>();
 
             scheduleMainThread(player.getServer(), () -> {
                 try {
                     if (!player.isAlive() || player.hasDisconnected()) {
-                        teleportFuture.complete(null);
+                        teleportFuture.complete(false);
                         return;
                     }
 
-                    if (finalPos != null) {
-                        performTeleport(player, level, finalPos, attempts);
-                    } else {
-                        player.sendSystemMessage(Component.literal(
-                                "§cCould not find a safe location after " + MAX_ATTEMPTS + " attempts!"));
-                    }
-                } finally {
-                    teleportFuture.complete(null);
+                    boolean success = performTeleport(player, level, finalPos, attempts);
+                    teleportFuture.complete(success);
+                } catch (Exception e) {
+                    teleportFuture.complete(false);
                 }
             });
 
-            // Wait for teleport to complete before processing next request
+            // Wait for teleport to complete and check result
             try {
-                teleportFuture.get(10, TimeUnit.SECONDS);
+                teleportSuccess = teleportFuture.get(10, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
-                // Ignore timeout, proceed
+                teleportSuccess = false;
+            }
+
+            // If teleport failed (location became unsafe), continue searching
+            if (!teleportSuccess) {
+                VonixCore.LOGGER.info("[RTP] Initial attempt failed, continuing search for {}", player.getName().getString());
+                // Continue searching with more attempts - don't remove from pending yet
+                boolean continuedSuccess = continueSearching(player, level, center, attempts);
+                if (!continuedSuccess) {
+                    pendingPlayers.remove(playerUuid);
+                }
+                return;
             }
 
         } catch (Exception e) {
@@ -249,6 +268,102 @@ public class AsyncRtpManager {
                     player.sendSystemMessage(Component.literal("§cAn error occurred during RTP."));
                 }
             });
+        } finally {
+            // Only remove if we didn't continue searching
+            if (teleportSuccess) {
+                pendingPlayers.remove(playerUuid);
+            }
+        }
+    }
+
+    /**
+     * Continues searching for a safe location after initial failure.
+     * Returns true if successful, false if all attempts exhausted.
+     */
+    private static boolean continueSearching(ServerPlayer player, ServerLevel level, BlockPos center, int attemptsSoFar) {
+        UUID playerUuid = player.getUUID();
+        int totalAttempts = attemptsSoFar;
+        int additionalAttempts = 25; // Try 25 more times
+
+        try {
+            for (int i = 0; i < additionalAttempts; i++) {
+                totalAttempts++;
+
+                // Progress feedback every 10 attempts
+                if (totalAttempts % 10 == 0) {
+                    final int currentAttempt = totalAttempts;
+                    scheduleMainThread(player.getServer(), () -> {
+                        if (player.isAlive() && !player.hasDisconnected()) {
+                            player.sendSystemMessage(Component.literal(
+                                    "§7Still searching... (attempt " + currentAttempt + ")"));
+                        }
+                    });
+                }
+
+                // Generate random coordinates
+                ThreadLocalRandom random = ThreadLocalRandom.current();
+                double angle = random.nextDouble() * 2 * Math.PI;
+                int minDist = getMinDistance();
+                int maxDist = getMaxDistance();
+                int dist = minDist + random.nextInt(Math.max(1, maxDist - minDist));
+                int x = center.getX() + (int) (Math.cos(angle) * dist);
+                int z = center.getZ() + (int) (Math.sin(angle) * dist);
+
+                ChunkPos chunkPos = new ChunkPos(x >> 4, z >> 4);
+
+                // Load chunk asynchronously with timeout
+                ChunkAccess chunk = loadChunkAsync(level, chunkPos);
+                if (chunk == null) {
+                    continue;
+                }
+
+                // Safety check using ChunkAccess
+                BlockPos candidate = findSafeYFromChunk(level, chunk, x, z);
+                if (candidate != null && isSafeSpotFromChunk(level, chunk, candidate)) {
+                    final BlockPos finalPos = candidate;
+                    
+                    // Try to teleport
+                    CompletableFuture<Boolean> teleportFuture = new CompletableFuture<>();
+                    scheduleMainThread(player.getServer(), () -> {
+                        try {
+                            if (!player.isAlive() || player.hasDisconnected()) {
+                                teleportFuture.complete(false);
+                                return;
+                            }
+                            boolean success = performTeleport(player, level, finalPos, totalAttempts);
+                            teleportFuture.complete(success);
+                        } catch (Exception e) {
+                            teleportFuture.complete(false);
+                        }
+                    });
+
+                    boolean success = false;
+                    try {
+                        success = teleportFuture.get(10, TimeUnit.SECONDS);
+                    } catch (TimeoutException e) {
+                        success = false;
+                    }
+
+                    if (success) {
+                        pendingPlayers.remove(playerUuid);
+                        return true;
+                    }
+                    // If failed, continue to next attempt
+                }
+            }
+
+            // Exhausted all attempts
+            scheduleMainThread(player.getServer(), () -> {
+                if (player.isAlive() && !player.hasDisconnected()) {
+                    player.sendSystemMessage(Component.literal(
+                            "§cCould not find a safe location after " + totalAttempts + " attempts!"));
+                }
+            });
+            return false;
+
+        } catch (Exception e) {
+            VonixCore.LOGGER.error("[RTP] Error during continued search for {}: {}", player.getName().getString(), e.getMessage());
+            return false;
         } finally {
             pendingPlayers.remove(playerUuid);
         }
@@ -309,7 +424,7 @@ public class AsyncRtpManager {
      * Performs teleport with proper chunk generation.
      * Must be called on main thread.
      */
-    private static void performTeleport(ServerPlayer player, ServerLevel level, BlockPos safePos, int attempts) {
+    private static boolean performTeleport(ServerPlayer player, ServerLevel level, BlockPos safePos, int attempts) {
         ChunkPos chunkPos = new ChunkPos(safePos);
         ServerChunkCache chunkSource = level.getChunkSource();
 
@@ -329,8 +444,8 @@ public class AsyncRtpManager {
 
             // Validate the location is still safe before teleporting
             if (!isLocationSafeMainThread(level, safePos)) {
-                player.sendSystemMessage(Component.literal("§cTarget location became unsafe! Please try RTP again."));
-                return;
+                VonixCore.LOGGER.warn("[RTP] Location became unsafe during final check, will continue searching");
+                return false;
             }
 
             // Save current location for /back command BEFORE teleporting
@@ -346,9 +461,10 @@ public class AsyncRtpManager {
 
             // Pre-load surrounding chunks async (fire and forget)
             preloadSurroundingChunksAsync(level, safePos);
+            return true;
         } catch (Exception e) {
             VonixCore.LOGGER.error("[RTP] Error during teleport: {}", e.getMessage());
-            player.sendSystemMessage(Component.literal("§cTeleport failed! Please try RTP again."));
+            return false;
         } finally {
             chunkSource.removeRegionTicket(RTP_TICKET, chunkPos, 3, chunkPos);
         }

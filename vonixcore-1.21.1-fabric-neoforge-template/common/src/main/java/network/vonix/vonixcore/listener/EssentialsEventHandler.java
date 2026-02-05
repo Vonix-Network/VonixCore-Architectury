@@ -66,38 +66,12 @@ public class EssentialsEventHandler {
         });
 
         // Chat Formatting
-        // On Fabric: Handled by mixin (ServerGamePacketListenerMixin) to prevent
-        // duplicates
-        // On Forge/NeoForge: Handled here via Architectury event
+        // On Fabric AND NeoForge: Handled by mixin (ServerGamePacketListenerMixin) to prevent
+        // duplicates. The mixin handles both Discord sending AND chat formatting.
+        // This ChatEvent is disabled for both platforms to avoid double broadcasting.
         ChatEvent.RECEIVED.register((player, component) -> {
-            // On Fabric: Skip entirely - mixin handles both Discord and chat formatting
-            if (Platform.isFabric()) {
-                return EventResult.pass();
-            }
-
-            // On NeoForge: Skip Discord sending - mixin handles it
-            // Only handle chat formatting here
-            if (!EssentialsConfig.CONFIG.enabled.get()) {
-                return EventResult.pass();
-            }
-
-            if (player instanceof ServerPlayer) {
-                ServerPlayer serverPlayer = (ServerPlayer) player;
-                String rawMessage = component.getString();
-
-                // Check chat formatting only - Discord is handled by mixin on NeoForge
-                if (EssentialsConfig.CONFIG.chatFormattingEnabled.get()) {
-                    // Format the message with prefix/suffix
-                    Component formatted = ChatFormatter.formatChatMessage(serverPlayer, rawMessage);
-
-                    // Manually broadcast the formatted message to all players
-                    serverPlayer.server.getPlayerList().broadcastSystemMessage(formatted, false);
-
-                    // Cancel the original event to prevent default rendering
-                    return EventResult.interruptTrue();
-                }
-            }
-
+            // Skip entirely on both Fabric and NeoForge - mixin handles everything
+            // to avoid duplicate messages
             return EventResult.pass();
         });
 

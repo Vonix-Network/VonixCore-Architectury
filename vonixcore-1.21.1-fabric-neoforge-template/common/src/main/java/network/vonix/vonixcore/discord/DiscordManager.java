@@ -81,6 +81,12 @@ public class DiscordManager {
             VonixCore.LOGGER.info("[Discord] Disabled in config.");
             return;
         }
+        
+        // Prevent double initialization
+        if (this.running) {
+            VonixCore.LOGGER.warn("[Discord] Already initialized, skipping duplicate init.");
+            return;
+        }
 
         this.server = server;
         this.running = true;
@@ -99,7 +105,7 @@ public class DiscordManager {
             VonixCore.LOGGER.info("[Discord] Using separate channel for events: {}", pEventChannelId);
         } else {
             this.eventChannelId = channelId;
-            VonixCore.LOGGER.info("[Discord] Using main channel for events.");
+            VonixCore.LOGGER.info("[Discord] Using main channel for events: {}", channelId);
         }
 
         // 2. Initialize Sub-systems
@@ -115,10 +121,12 @@ public class DiscordManager {
 
         // 3. Connect Bot
         this.botClient.setMessageHandler(this::onDiscordMessage);
-        this.botClient.connect(botToken, channelId).thenRun(() -> {
+        this.botClient.connect(botToken, channelId).thenRunAsync(() -> {
             // 4. Send Startup Message (only after connection)
+            // Added 5s delay to ensure permissions are cached
+            VonixCore.LOGGER.info("[Discord] Bot connected, sending startup embed to channel: {}", eventChannelId);
             sendStartupEmbed(DiscordConfig.CONFIG.serverName.get());
-        });
+        }, CompletableFuture.delayedExecutor(5, TimeUnit.SECONDS));
 
         VonixCore.LOGGER.info("[Discord] Integration initialized.");
     }
@@ -146,7 +154,7 @@ public class DiscordManager {
                 VonixCore.LOGGER.error("[Discord] Error disconnecting bot client: {}", e.getMessage());
             }
         }
-        
+
         // Shutdown webhook client with error handling
         if (webhookClient != null) {
             try {
@@ -631,19 +639,19 @@ public class DiscordManager {
             VonixCore.LOGGER.debug("[Discord] Cannot send event embed - Discord not running");
             return CompletableFuture.completedFuture(null);
         }
-        
+
         if (eventChannelId == null || eventChannelId.isEmpty()) {
             VonixCore.LOGGER.warn("[Discord] Cannot send event embed - event channel ID not set");
             return CompletableFuture.completedFuture(null);
         }
-        
+
         JsonObject embed = new JsonObject();
         embedBuilder.accept(embed);
-        
+
         if (DiscordConfig.CONFIG.debugLogging.get()) {
             VonixCore.LOGGER.debug("[Discord] Sending event embed to channel: {}", eventChannelId);
         }
-        
+
         return botClient.sendEmbed(eventChannelId, embed).whenComplete((msg, error) -> {
             if (error != null) {
                 VonixCore.LOGGER.error("[Discord] Failed to send event embed to channel {}", eventChannelId, error);
@@ -685,14 +693,13 @@ public class DiscordManager {
                 username,
                 DiscordConfig.CONFIG.serverName.get(),
                 "Join",
-                getAvatarUrl(username)
-        )).whenComplete((msg, error) -> {
-            if (error != null) {
-                VonixCore.LOGGER.error("[Discord] Failed to send join embed for {}", username, error);
-            } else if (DiscordConfig.CONFIG.debugLogging.get()) {
-                VonixCore.LOGGER.debug("[Discord] Sent join embed for {}", username);
-            }
-        });
+                getAvatarUrl(username))).whenComplete((msg, error) -> {
+                    if (error != null) {
+                        VonixCore.LOGGER.error("[Discord] Failed to send join embed for {}", username, error);
+                    } else if (DiscordConfig.CONFIG.debugLogging.get()) {
+                        VonixCore.LOGGER.debug("[Discord] Sent join embed for {}", username);
+                    }
+                });
     }
 
     public void sendLeaveEmbed(String username, String uuid) {
@@ -711,14 +718,13 @@ public class DiscordManager {
                 username,
                 DiscordConfig.CONFIG.serverName.get(),
                 "Leave",
-                getAvatarUrl(username)
-        )).whenComplete((msg, error) -> {
-            if (error != null) {
-                VonixCore.LOGGER.error("[Discord] Failed to send leave embed for {}", username, error);
-            } else if (DiscordConfig.CONFIG.debugLogging.get()) {
-                VonixCore.LOGGER.debug("[Discord] Sent leave embed for {}", username);
-            }
-        });
+                getAvatarUrl(username))).whenComplete((msg, error) -> {
+                    if (error != null) {
+                        VonixCore.LOGGER.error("[Discord] Failed to send leave embed for {}", username, error);
+                    } else if (DiscordConfig.CONFIG.debugLogging.get()) {
+                        VonixCore.LOGGER.debug("[Discord] Sent leave embed for {}", username);
+                    }
+                });
     }
 
     // Deprecated single-arg methods for compatibility if needed
@@ -784,14 +790,13 @@ public class DiscordManager {
                 0xFAA61A,
                 username,
                 title,
-                desc
-        )).whenComplete((msg, error) -> {
-            if (error != null) {
-                VonixCore.LOGGER.error("[Discord] Failed to send advancement embed for {}", username, error);
-            } else if (DiscordConfig.CONFIG.debugLogging.get()) {
-                VonixCore.LOGGER.debug("[Discord] Sent advancement embed for {}", username);
-            }
-        });
+                desc)).whenComplete((msg, error) -> {
+                    if (error != null) {
+                        VonixCore.LOGGER.error("[Discord] Failed to send advancement embed for {}", username, error);
+                    } else if (DiscordConfig.CONFIG.debugLogging.get()) {
+                        VonixCore.LOGGER.debug("[Discord] Sent advancement embed for {}", username);
+                    }
+                });
     }
 
     public void updateBotStatus() {
