@@ -82,8 +82,10 @@ public abstract class ServerGamePacketListenerMixin {
 
         if (shouldSendToDiscord) {
             VonixCore.LOGGER.info("[VonixCore Debug] Sending to DiscordManager: " + rawMessage); // DEBUG LOG
+            String nickname = network.vonix.vonixcore.command.UtilityCommands.getNickname(player.getUUID());
+            String displayName = nickname != null ? nickname : player.getName().getString();
             DiscordManager.getInstance()
-                    .sendChatMessage(player.getName().getString(), rawMessage, player.getStringUUID());
+                    .sendChatMessage(displayName, rawMessage, player.getStringUUID());
         } else {
             VonixCore.LOGGER.info("[VonixCore Debug] Filtered from Discord"); // DEBUG LOG
         }

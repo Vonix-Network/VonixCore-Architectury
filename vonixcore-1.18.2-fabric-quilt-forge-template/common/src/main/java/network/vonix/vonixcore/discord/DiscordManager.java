@@ -82,6 +82,12 @@ public class DiscordManager {
             VonixCore.LOGGER.info("[Discord] Disabled in config.");
             return;
         }
+        
+        // Prevent double initialization
+        if (this.running) {
+            VonixCore.LOGGER.warn("[Discord] Already initialized, skipping duplicate init.");
+            return;
+        }
 
         this.server = server;
         this.running = true;
@@ -761,25 +767,49 @@ public class DiscordManager {
     }
 
     public void sendDeathEmbed(String message) {
+        if (!DiscordConfig.CONFIG.sendDeath.get())
+            return;
+
+        if (!isRunning()) {
+            VonixCore.LOGGER.debug("[Discord] Not sending death embed - Discord not running");
+            return;
+        }
+
         JsonObject embed = new JsonObject();
         embed.addProperty("title", "Player Died");
         embed.addProperty("description", message);
         embed.addProperty("color", 0xF04747);
-        if (running) {
-            botClient.sendEmbed(eventChannelId, embed);
-        }
+
+        botClient.sendEmbed(eventChannelId, embed).whenComplete((msg, error) -> {
+            if (error != null) {
+                VonixCore.LOGGER.error("[Discord] Failed to send death embed", error);
+            } else if (DiscordConfig.CONFIG.debugLogging.get()) {
+                VonixCore.LOGGER.debug("[Discord] Sent death embed");
+            }
+        });
     }
 
     public void sendAdvancementEmbed(String username, String title, String desc) {
         if (!DiscordConfig.CONFIG.sendAdvancement.get())
             return;
 
+        if (!isRunning()) {
+            VonixCore.LOGGER.debug("[Discord] Not sending advancement embed - Discord not running");
+            return;
+        }
+
         sendEventEmbedInternal(EmbedFactory.createAdvancementEmbed(
                 "🏆",
                 0xFAA61A,
                 username,
                 title,
-                desc));
+                desc)).whenComplete((msg, error) -> {
+                    if (error != null) {
+                        VonixCore.LOGGER.error("[Discord] Failed to send advancement embed for {}", username, error);
+                    } else if (DiscordConfig.CONFIG.debugLogging.get()) {
+                        VonixCore.LOGGER.debug("[Discord] Sent advancement embed for {}", username);
+                    }
+                });
     }
 
     public void updateBotStatus() {

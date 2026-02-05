@@ -5,9 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.6] (1.20.1) & [1.1.2] (1.21.1) & [1.0.5] (1.18.2) - 2026-02-05
+## [1.1.6] (1.20.1) & [1.1.2] (1.21.1) & [1.1.1] (1.18.2) - 2026-02-05
 
 ### Fixed
+- **Nickname Support in Chat**:
+    - Fixed nickname not replacing username in custom chat formatting when a nickname is set
+    - Applied to all versions: 1.18.2, 1.20.1, and 1.21.1
+    - Discord integration now also uses nicknames when relaying messages
 - **RTP (Random Teleport)**:
     - Auto-retry when location becomes unsafe during final teleport check
     - Changed `performTeleport()` to return boolean and continue searching on failure
@@ -28,9 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Version Numbers** (Semantic Versioning):
-    - 1.20.1: `1.1.4` → `1.1.6` (patch + new fixes)
-    - 1.21.1: `1.0.4` → `1.1.2` (minor bump for Discord fixes + patch)
-    - 1.18.2: `1.0.4` → `1.0.5` (patch for Discord improvements)
+    - 1.20.1: `1.1.5` → `1.1.6` (patch for nickname fix)
+    - 1.21.1: `1.1.1` → `1.1.2` (patch for nickname fix)
+    - 1.18.2: `1.1.0` → `1.1.1` (patch for nickname fix)
 
 ## [1.1.5] (1.20.1) & [1.1.1] (1.21.1) - 2026-02-04
 

@@ -321,6 +321,7 @@ public class AsyncRtpManager {
                 BlockPos candidate = findSafeYFromChunk(level, chunk, x, z);
                 if (candidate != null && isSafeSpotFromChunk(level, chunk, candidate)) {
                     final BlockPos finalPos = candidate;
+                    final int attemptNumber = totalAttempts;
                     
                     // Try to teleport
                     CompletableFuture<Boolean> teleportFuture = new CompletableFuture<>();
@@ -330,7 +331,7 @@ public class AsyncRtpManager {
                                 teleportFuture.complete(false);
                                 return;
                             }
-                            boolean success = performTeleport(player, level, finalPos, totalAttempts);
+                            boolean success = performTeleport(player, level, finalPos, attemptNumber);
                             teleportFuture.complete(success);
                         } catch (Exception e) {
                             teleportFuture.complete(false);
@@ -353,10 +354,11 @@ public class AsyncRtpManager {
             }
 
             // Exhausted all attempts
+            final int finalTotalAttempts = totalAttempts;
             scheduleMainThread(player.getServer(), () -> {
                 if (player.isAlive() && !player.hasDisconnected()) {
                     player.sendSystemMessage(Component.literal(
-                            "§cCould not find a safe location after " + totalAttempts + " attempts!"));
+                            "§cCould not find a safe location after " + finalTotalAttempts + " attempts!"));
                 }
             });
             return false;

@@ -74,8 +74,10 @@ public abstract class ServerGamePacketListenerMixin {
         }
 
         if (shouldSendToDiscord) {
+            String nickname = network.vonix.vonixcore.command.UtilityCommands.getNickname(player.getUUID());
+            String displayName = nickname != null ? nickname : player.getName().getString();
             DiscordManager.getInstance()
-                    .sendChatMessage(player.getName().getString(), rawMessage, player.getStringUUID());
+                    .sendChatMessage(displayName, rawMessage, player.getStringUUID());
         }
     }
 }

@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class AsyncRtpManager {
 
-    private static final int MAX_ATTEMPTS = 50;
+    private static final int MAX_ATTEMPTS = 100;
     private static final int CHUNK_LOAD_TIMEOUT_MS = 5000; // 5 seconds per chunk
     
     // Custom ticket type for RTP chunk loading
@@ -320,6 +320,7 @@ public class AsyncRtpManager {
                 BlockPos candidate = findSafeYFromChunk(level, chunk, x, z);
                 if (candidate != null && isSafeSpotFromChunk(level, chunk, candidate)) {
                     final BlockPos finalPos = candidate;
+                    final int attemptNumber = totalAttempts;
                     
                     // Try to teleport
                     CompletableFuture<Boolean> teleportFuture = new CompletableFuture<>();
@@ -329,7 +330,7 @@ public class AsyncRtpManager {
                                 teleportFuture.complete(false);
                                 return;
                             }
-                            boolean success = performTeleport(player, level, finalPos, totalAttempts);
+                            boolean success = performTeleport(player, level, finalPos, attemptNumber);
                             teleportFuture.complete(success);
                         } catch (Exception e) {
                             teleportFuture.complete(false);
@@ -352,10 +353,11 @@ public class AsyncRtpManager {
             }
 
             // Exhausted all attempts
+            final int finalTotalAttempts = totalAttempts;
             scheduleMainThread(player.getServer(), () -> {
                 if (player.isAlive() && !player.hasDisconnected()) {
                     player.sendMessage(new TextComponent(
-                            "§cCould not find a safe location after " + totalAttempts + " attempts!"), net.minecraft.Util.NIL_UUID);
+                            "§cCould not find a safe location after " + finalTotalAttempts + " attempts!"), net.minecraft.Util.NIL_UUID);
                 }
             });
             return false;
@@ -572,8 +574,8 @@ public class AsyncRtpManager {
         int minY = level.getMinBuildHeight();
         int maxY = level.getMaxBuildHeight();
         
-        // Start at Y=100 as requested and search downward for first solid ground
-        int startY = Math.min(100, maxY - 2);
+        // Start at Y=200 as requested and search downward for first solid ground
+        int startY = Math.min(200, maxY - 2);
         int endY = Math.max(minY + 1, 80); // Don't go below Y=80 for safety
 
         // Enhanced safety check: look for solid ground with proper space

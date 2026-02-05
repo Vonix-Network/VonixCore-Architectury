@@ -40,6 +40,12 @@ public class BotClient {
             VonixCore.LOGGER.warn("Bot token not configured.");
             return CompletableFuture.completedFuture(null);
         }
+        
+        // Prevent double connection
+        if (api != null) {
+            VonixCore.LOGGER.warn("[Discord] Bot already connected, skipping duplicate connect.");
+            return CompletableFuture.completedFuture(null);
+        }
 
         VonixCore.LOGGER.info("Connecting to Discord...");
 
@@ -86,8 +92,12 @@ public class BotClient {
 
     public CompletableFuture<org.javacord.api.entity.message.Message> sendEmbed(String channelId,
             com.google.gson.JsonObject embedJson) {
-        if (api == null)
+        if (api == null) {
+            VonixCore.LOGGER.warn("[Discord] Cannot send embed - API is null (bot not connected)");
             return CompletableFuture.completedFuture(null);
+        }
+        
+        VonixCore.LOGGER.info("[Discord] Attempting to send embed to channel ID: {}", channelId);
 
         return api.getTextChannelById(channelId).map(channel -> {
             org.javacord.api.entity.message.embed.EmbedBuilder embed = new org.javacord.api.entity.message.embed.EmbedBuilder();

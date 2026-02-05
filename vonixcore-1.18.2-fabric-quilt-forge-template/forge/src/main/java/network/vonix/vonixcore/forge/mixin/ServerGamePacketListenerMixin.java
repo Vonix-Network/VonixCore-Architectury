@@ -1,6 +1,7 @@
 package network.vonix.vonixcore.forge.mixin;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ServerboundChatPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import network.vonix.vonixcore.VonixCore;
@@ -18,6 +19,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Forge mixin to intercept chat messages and apply custom formatting while cancelling
  * vanilla broadcast. This prevents duplicate messages that occur when using
  * Architectury's ChatEvent which fires AFTER vanilla processing.
+ * 
+ * NOTE: For 1.18.2, we use ServerboundChatPacket (pre-1.19 signed chat system).
  */
 @Mixin(ServerGamePacketListenerImpl.class)
 public abstract class ServerGamePacketListenerMixin {
@@ -26,14 +29,13 @@ public abstract class ServerGamePacketListenerMixin {
     public ServerPlayer player;
 
     /**
-     * Intercept chat broadcast to apply custom formatting and cancel vanilla.
-     * This targets the method that broadcasts the chat message to all players.
+     * Intercept chat to apply custom formatting and cancel vanilla.
+     * In 1.18.2, we target handleChat which receives the ServerboundChatPacket.
      */
-    @Inject(method = "broadcastChatMessage", at = @At("HEAD"), cancellable = true)
-    private void vonixcore$onBroadcastChatMessage(net.minecraft.network.chat.PlayerChatMessage message,
-            CallbackInfo ci) {
+    @Inject(method = "handleChat(Lnet/minecraft/network/protocol/game/ServerboundChatPacket;)V", at = @At("HEAD"), cancellable = true)
+    private void vonixcore$onHandleChat(ServerboundChatPacket packet, CallbackInfo ci) {
         try {
-            String rawMessage = message.signedContent();
+            String rawMessage = packet.getMessage();
 
             // ALWAYS send to Discord (if running), regardless of chat formatting setting
             sendToDiscordIfEnabled(rawMessage);
@@ -44,7 +46,9 @@ public abstract class ServerGamePacketListenerMixin {
                 Component formatted = ChatFormatter.formatChatMessage(player, rawMessage);
 
                 // Broadcast the formatted message to all players
-                player.server.getPlayerList().broadcastSystemMessage(formatted, false);
+                // 1.18.2: Use broadcastMessage(Component, ChatType, UUID)
+                player.server.getPlayerList().broadcastMessage(formatted, 
+                        net.minecraft.network.chat.ChatType.SYSTEM, net.minecraft.Util.NIL_UUID);
 
                 // Cancel the vanilla broadcast since we handled it
                 ci.cancel();
@@ -75,8 +79,10 @@ public abstract class ServerGamePacketListenerMixin {
         }
 
         if (shouldSendToDiscord) {
+            String nickname = network.vonix.vonixcore.command.UtilityCommands.getNickname(player.getUUID());
+            String displayName = nickname != null ? nickname : player.getName().getString();
             DiscordManager.getInstance()
-                    .sendChatMessage(player.getName().getContents(), rawMessage, player.getStringUUID());
+                    .sendChatMessage(displayName, rawMessage, player.getStringUUID());
         }
     }
 }
