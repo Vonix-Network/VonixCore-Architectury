@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] (1.20.1) & [1.1.2] (1.21.1) & [1.0.5] (1.18.2) - 2026-02-05
+
+### Fixed
+- **RTP (Random Teleport)**:
+    - Auto-retry when location becomes unsafe during final teleport check
+    - Changed `performTeleport()` to return boolean and continue searching on failure
+    - Added `continueSearching()` method for up to 25 additional attempts
+    - Shows "Still searching..." progress feedback every 10 attempts during extended search
+    - Applied to all versions: 1.18.2, 1.20.1, and 1.21.1
+- **Discord Integration** (1.21.1):
+    - Fixed duplicate in-game chat messages on NeoForge (ChatEvent was double-broadcasting)
+    - Added double-initialization guard in `DiscordManager.initialize()`
+    - Added double-connection guard in `BotClient.connect()`
+    - Improved error logging for 403 Missing Permissions errors
+    - Better diagnostics when bot cannot see/send to channel
+- **Discord Integration** (1.18.2):
+    - Added missing error handling and logging from 1.21.1 backport
+    - Added `isRunning()` checks to `sendJoinEmbed()` and `sendLeaveEmbed()`
+    - Added `whenComplete()` error handling to all event embed senders
+    - Added null/empty check for `eventChannelId` in `sendEventEmbedInternal()`
+
+### Changed
+- **Version Numbers** (Semantic Versioning):
+    - 1.20.1: `1.1.4` → `1.1.6` (patch + new fixes)
+    - 1.21.1: `1.0.4` → `1.1.2` (minor bump for Discord fixes + patch)
+    - 1.18.2: `1.0.4` → `1.0.5` (patch for Discord improvements)
 
 ## [1.1.5] (1.20.1) & [1.1.1] (1.21.1) - 2026-02-04
 

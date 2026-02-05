@@ -640,11 +640,28 @@ public class DiscordManager {
     // =================================================================================
 
     private CompletableFuture<Message> sendEventEmbedInternal(Consumer<JsonObject> embedBuilder) {
-        if (!running)
+        if (!running) {
+            VonixCore.LOGGER.debug("[Discord] Cannot send event embed - Discord not running");
             return CompletableFuture.completedFuture(null);
+        }
+        
+        if (eventChannelId == null || eventChannelId.isEmpty()) {
+            VonixCore.LOGGER.warn("[Discord] Cannot send event embed - event channel ID not set");
+            return CompletableFuture.completedFuture(null);
+        }
+        
         JsonObject embed = new JsonObject();
         embedBuilder.accept(embed);
-        return botClient.sendEmbed(eventChannelId, embed);
+        
+        if (DiscordConfig.CONFIG.debugLogging.get()) {
+            VonixCore.LOGGER.debug("[Discord] Sending event embed to channel: {}", eventChannelId);
+        }
+        
+        return botClient.sendEmbed(eventChannelId, embed).whenComplete((msg, error) -> {
+            if (error != null) {
+                VonixCore.LOGGER.error("[Discord] Failed to send event embed to channel {}", eventChannelId, error);
+            }
+        });
     }
 
     public void sendStartupEmbed(String serverName) {
@@ -669,6 +686,11 @@ public class DiscordManager {
         if (!DiscordConfig.CONFIG.sendJoin.get())
             return;
 
+        if (!isRunning()) {
+            VonixCore.LOGGER.debug("[Discord] Not sending join embed - Discord not running");
+            return;
+        }
+
         sendEventEmbedInternal(EmbedFactory.createPlayerEventEmbed(
                 "Player Joined",
                 username + " joined the game",
@@ -676,13 +698,24 @@ public class DiscordManager {
                 username,
                 DiscordConfig.CONFIG.serverName.get(),
                 "Join",
-                getAvatarUrl(username) // TODO: Use UUID if possible
-        ));
+                getAvatarUrl(username)
+        )).whenComplete((msg, error) -> {
+            if (error != null) {
+                VonixCore.LOGGER.error("[Discord] Failed to send join embed for {}", username, error);
+            } else if (DiscordConfig.CONFIG.debugLogging.get()) {
+                VonixCore.LOGGER.debug("[Discord] Sent join embed for {}", username);
+            }
+        });
     }
 
     public void sendLeaveEmbed(String username, String uuid) {
         if (!DiscordConfig.CONFIG.sendLeave.get())
             return;
+
+        if (!isRunning()) {
+            VonixCore.LOGGER.debug("[Discord] Not sending leave embed - Discord not running");
+            return;
+        }
 
         sendEventEmbedInternal(EmbedFactory.createPlayerEventEmbed(
                 "Player Left",
@@ -691,8 +724,14 @@ public class DiscordManager {
                 username,
                 DiscordConfig.CONFIG.serverName.get(),
                 "Leave",
-                getAvatarUrl(username) // TODO: Use UUID if possible
-        ));
+                getAvatarUrl(username)
+        )).whenComplete((msg, error) -> {
+            if (error != null) {
+                VonixCore.LOGGER.error("[Discord] Failed to send leave embed for {}", username, error);
+            } else if (DiscordConfig.CONFIG.debugLogging.get()) {
+                VonixCore.LOGGER.debug("[Discord] Sent leave embed for {}", username);
+            }
+        });
     }
 
     // Deprecated single-arg methods for compatibility if needed

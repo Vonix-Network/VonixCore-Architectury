@@ -32,7 +32,7 @@ public class VonixCore {
 
     public static final String MODID = "vonixcore";
     public static final String MOD_NAME = "VonixCore";
-    public static final String VERSION = "1.1.4";
+    public static final String VERSION = "1.1.6";
 
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_NAME);
 
