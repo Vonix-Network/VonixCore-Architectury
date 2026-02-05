@@ -96,6 +96,18 @@ shadowJar {
     mergeServiceFiles()
 
     // Relocate ALL dependencies to avoid module conflicts
+    // Exclude Javacord internal classes from shadowing to prevent class loading issues
+    exclude 'org.javacord.core.util.rest.**'
+    exclude 'org.javacord.core.entity.**'
+    exclude 'org.javacord.core.audio.**'
+    exclude 'org.javacord.core.util.logging.**'
+    exclude 'org.javacord.core.util.gateway.**'
+    exclude 'org.javacord.core.util.event.**'
+    exclude 'org.javacord.core.util.file.**'
+    exclude 'org.javacord.core.util.auth.**'
+    exclude 'org.javacord.core.util.read.**'
+    exclude 'org.javacord.core.common.**'
+    
     relocate 'org.javacord', 'network.vonix.vonixcore.shadow.javacord'
     relocate 'okhttp3', 'network.vonix.vonixcore.shadow.okhttp3'
     relocate 'okio', 'network.vonix.vonixcore.shadow.okio'
