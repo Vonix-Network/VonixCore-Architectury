@@ -132,15 +132,29 @@ public class DiscordManager {
             sendShutdownEmbed(DiscordConfig.CONFIG.serverName.get()).get(5, TimeUnit.SECONDS);
             VonixCore.LOGGER.info("[Discord] Shutdown message sent successfully");
         } catch (Exception e) {
-            VonixCore.LOGGER.warn("[Discord] Failed to send shutdown message", e);
+            VonixCore.LOGGER.warn("[Discord] Failed to send shutdown message: {}", e.getMessage());
+            // Don't re-throw - continue with cleanup
         }
 
         running = false;
 
-        if (botClient != null)
-            botClient.disconnect();
-        if (webhookClient != null)
-            webhookClient.shutdown();
+        // Disconnect bot client with error handling
+        if (botClient != null) {
+            try {
+                botClient.disconnect();
+            } catch (Exception e) {
+                VonixCore.LOGGER.error("[Discord] Error disconnecting bot client: {}", e.getMessage());
+            }
+        }
+        
+        // Shutdown webhook client with error handling
+        if (webhookClient != null) {
+            try {
+                webhookClient.shutdown();
+            } catch (Exception e) {
+                VonixCore.LOGGER.error("[Discord] Error shutting down webhook client: {}", e.getMessage());
+            }
+        }
     }
 
     /**
