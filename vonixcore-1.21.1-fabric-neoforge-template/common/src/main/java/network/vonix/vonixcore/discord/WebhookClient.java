@@ -5,6 +5,7 @@ import network.vonix.vonixcore.VonixCore;
 import okhttp3.*;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -33,33 +34,36 @@ public class WebhookClient {
         this.webhookUrl = webhookUrl;
     }
 
-    public void sendMessage(String username, String avatarUrl, String content) {
-        if (webhookUrl == null || webhookUrl.isEmpty() || webhookUrl.contains("YOUR_WEBHOOK_URL")) return;
+    public CompletableFuture<Void> sendMessage(String username, String avatarUrl, String content) {
+        if (webhookUrl == null || webhookUrl.isEmpty() || webhookUrl.contains("YOUR_WEBHOOK_URL"))
+            return CompletableFuture.completedFuture(null);
 
         JsonObject json = new JsonObject();
         json.addProperty("username", username);
         json.addProperty("avatar_url", avatarUrl);
         json.addProperty("content", content);
 
-        sendJson(json);
+        return sendJson(json);
     }
 
-    public void sendEmbed(String username, String avatarUrl, JsonObject embed) {
-        if (webhookUrl == null || webhookUrl.isEmpty()) return;
+    public CompletableFuture<Void> sendEmbed(String username, String avatarUrl, JsonObject embed) {
+        if (webhookUrl == null || webhookUrl.isEmpty())
+            return CompletableFuture.completedFuture(null);
 
         JsonObject json = new JsonObject();
         json.addProperty("username", username);
-        if (avatarUrl != null) json.addProperty("avatar_url", avatarUrl);
-        
+        if (avatarUrl != null)
+            json.addProperty("avatar_url", avatarUrl);
+
         com.google.gson.JsonArray embeds = new com.google.gson.JsonArray();
         embeds.add(embed);
         json.add("embeds", embeds);
 
-        sendJson(json);
+        return sendJson(json);
     }
 
-    private void sendJson(JsonObject json) {
-        VonixCore.executeAsync(() -> {
+    private CompletableFuture<Void> sendJson(JsonObject json) {
+        return CompletableFuture.runAsync(() -> {
             RequestBody body = RequestBody.create(json.toString(), MediaType.parse("application/json"));
             Request request = new Request.Builder()
                     .url(webhookUrl)
@@ -76,7 +80,7 @@ public class WebhookClient {
             } catch (IOException e) {
                 VonixCore.LOGGER.error("Error sending webhook payload", e);
             }
-        });
+        }, VonixCore.ASYNC_EXECUTOR);
     }
 
     public void shutdown() {

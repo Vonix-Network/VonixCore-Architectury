@@ -617,7 +617,17 @@ public class DiscordManager {
             return CompletableFuture.completedFuture(null);
         JsonObject embed = new JsonObject();
         embedBuilder.accept(embed);
-        return botClient.sendEmbed(eventChannelId, embed);
+
+        // Use Webhook for reliability (like 1.20.1)
+        String serverName = DiscordConfig.CONFIG.serverName.get();
+        String prefix = DiscordConfig.CONFIG.serverPrefix.get();
+        String avatarUrl = DiscordConfig.CONFIG.serverAvatarUrl.get();
+
+        String username = DiscordConfig.CONFIG.webhookUsernameFormat.get()
+                .replace("{prefix}", prefix != null ? prefix : "")
+                .replace("{username}", serverName != null ? serverName : "Server");
+
+        return webhookClient.sendEmbed(username, avatarUrl, embed).thenApply(v -> null);
     }
 
     public void sendStartupEmbed(String serverName) {
