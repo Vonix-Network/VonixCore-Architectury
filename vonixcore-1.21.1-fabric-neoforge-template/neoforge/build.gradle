@@ -73,6 +73,7 @@ shadowJar {
     // Exclude logging libraries that conflict with Minecraft's module system
     exclude 'org/slf4j/**'
     exclude 'org/apache/logging/**'
+    exclude 'javax/annotation/**'
 
     // Exclude module-info.class to prevent module conflicts with shadowed libraries (Jackson, etc.)
     exclude '**/module-info.class'
