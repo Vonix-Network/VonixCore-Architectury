@@ -53,9 +53,9 @@ public class DiscordEventHandler {
         EntityEvent.LIVING_DEATH.register((entity, source) -> {
             if (entity instanceof ServerPlayer) {
                 ServerPlayer player = (ServerPlayer) entity;
-                if (DiscordManager.getInstance().isRunning() && DiscordConfig.CONFIG.sendDeath.get()) {
+                if (DiscordConfig.CONFIG.sendDeath.get()) {
                     String deathMessage = source.getLocalizedDeathMessage(player).getString();
-                    DiscordManager.getInstance().sendServerStatusMessage("Player Died", "💀 " + deathMessage, 0x000000);
+                    DiscordManager.getInstance().sendDeathEmbed(deathMessage);
                 }
             }
             return EventResult.pass();

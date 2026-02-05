@@ -70,10 +70,13 @@ public class EssentialsEventHandler {
         // duplicates
         // On Forge/NeoForge: Handled here via Architectury event
         ChatEvent.RECEIVED.register((player, component) -> {
+            // On Fabric: Skip entirely - mixin handles both Discord and chat formatting
             if (Platform.isFabric()) {
                 return EventResult.pass();
             }
 
+            // On NeoForge: Skip Discord sending - mixin handles it
+            // Only handle chat formatting here
             if (!EssentialsConfig.CONFIG.enabled.get()) {
                 return EventResult.pass();
             }
@@ -82,33 +85,7 @@ public class EssentialsEventHandler {
                 ServerPlayer serverPlayer = (ServerPlayer) player;
                 String rawMessage = component.getString();
 
-                // Send to Discord (with optional prefix filtering) - INDEPENDENT of chat
-                // formatting
-                try {
-                    if (network.vonix.vonixcore.discord.DiscordManager.getInstance().isRunning()) {
-                        boolean shouldSendToDiscord = true;
-
-                        // Check if chat filter is enabled and message starts with filter prefix
-                        if (network.vonix.vonixcore.config.DiscordConfig.CONFIG.enableChatFilter.get()) {
-                            String filterPrefix = network.vonix.vonixcore.config.DiscordConfig.CONFIG.chatFilterPrefix
-                                    .get();
-                            if (filterPrefix != null && !filterPrefix.isEmpty()
-                                    && rawMessage.startsWith(filterPrefix)) {
-                                shouldSendToDiscord = false;
-                            }
-                        }
-
-                        if (shouldSendToDiscord) {
-                            network.vonix.vonixcore.discord.DiscordManager.getInstance()
-                                    .sendChatMessage(serverPlayer.getName().getString(), rawMessage,
-                                            serverPlayer.getStringUUID());
-                        }
-                    }
-                } catch (Exception e) {
-                    VonixCore.LOGGER.error("Failed to send chat to Discord", e);
-                }
-
-                // Check chat formatting
+                // Check chat formatting only - Discord is handled by mixin on NeoForge
                 if (EssentialsConfig.CONFIG.chatFormattingEnabled.get()) {
                     // Format the message with prefix/suffix
                     Component formatted = ChatFormatter.formatChatMessage(serverPlayer, rawMessage);
