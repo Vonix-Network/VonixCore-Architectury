@@ -1,0 +1,14 @@
+{
+    "required": true,
+    "minVersion": "0.8",
+    "package": "network.vonix.vonixcore.neoforge.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "mixins": [
+        "ServerGamePacketListenerMixin"
+    ],
+    "client": [],
+    "server": [],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}

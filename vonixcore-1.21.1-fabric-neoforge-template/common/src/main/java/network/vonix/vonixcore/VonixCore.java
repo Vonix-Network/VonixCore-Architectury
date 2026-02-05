@@ -11,6 +11,7 @@ import network.vonix.vonixcore.database.Database;
 import network.vonix.vonixcore.discord.DiscordManager;
 import network.vonix.vonixcore.homes.HomeManager;
 import network.vonix.vonixcore.kits.KitManager;
+import network.vonix.vonixcore.permissions.PermissionManager;
 import network.vonix.vonixcore.platform.Platform;
 import network.vonix.vonixcore.teleport.TeleportManager;
 import network.vonix.vonixcore.warps.WarpManager;
@@ -157,6 +158,9 @@ public class VonixCore {
                 }
                 AdminManager.getInstance().initializeTable(conn);
 
+                PermissionManager.getInstance().initialize(conn);
+                LOGGER.info("[{}] Permission system initialized", MOD_NAME);
+
                 // Jobs excluded
 
                 essentialsEnabled = true;
@@ -212,20 +216,6 @@ public class VonixCore {
         // Shutdown Discord with timeout
         if (discordEnabled) {
             try {
-                if (DiscordManager.getInstance().isRunning()) {
-                    String serverName = DiscordConfig.CONFIG.serverName.get();
-
-                    // Send shutdown embed with timeout
-                    CompletableFuture<Void> shutdownMessage = CompletableFuture.runAsync(() -> {
-                        DiscordManager.getInstance().sendShutdownEmbed(serverName);
-                    });
-
-                    try {
-                        shutdownMessage.get(2, TimeUnit.SECONDS);
-                    } catch (Exception e) {
-                        LOGGER.debug("[{}] Discord shutdown message timed out", MOD_NAME);
-                    }
-                }
                 DiscordManager.getInstance().shutdown();
                 LOGGER.debug("[{}] Discord shutdown complete", MOD_NAME);
             } catch (Throwable e) {

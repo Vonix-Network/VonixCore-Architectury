@@ -5,7 +5,6 @@ import network.vonix.vonixcore.VonixCore;
 import okhttp3.*;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -34,21 +33,19 @@ public class WebhookClient {
         this.webhookUrl = webhookUrl;
     }
 
-    public CompletableFuture<Void> sendMessage(String username, String avatarUrl, String content) {
-        if (webhookUrl == null || webhookUrl.isEmpty() || webhookUrl.contains("YOUR_WEBHOOK_URL"))
-            return CompletableFuture.completedFuture(null);
+    public void sendMessage(String username, String avatarUrl, String content) {
+        if (webhookUrl == null || webhookUrl.isEmpty() || webhookUrl.contains("YOUR_WEBHOOK_URL")) return;
 
         JsonObject json = new JsonObject();
         json.addProperty("username", username);
         json.addProperty("avatar_url", avatarUrl);
         json.addProperty("content", content);
 
-        return sendJson(json);
+        sendJson(json);
     }
 
-    public CompletableFuture<Void> sendEmbed(String username, String avatarUrl, JsonObject embed) {
-        if (webhookUrl == null || webhookUrl.isEmpty())
-            return CompletableFuture.completedFuture(null);
+    public void sendEmbed(String username, String avatarUrl, JsonObject embed) {
+        if (webhookUrl == null || webhookUrl.isEmpty()) return;
 
         JsonObject json = new JsonObject();
         json.addProperty("username", username);
@@ -59,11 +56,11 @@ public class WebhookClient {
         embeds.add(embed);
         json.add("embeds", embeds);
 
-        return sendJson(json);
+        sendJson(json);
     }
 
-    private CompletableFuture<Void> sendJson(JsonObject json) {
-        return CompletableFuture.runAsync(() -> {
+    private void sendJson(JsonObject json) {
+        VonixCore.executeAsync(() -> {
             RequestBody body = RequestBody.create(json.toString(), MediaType.parse("application/json"));
             Request request = new Request.Builder()
                     .url(webhookUrl)
@@ -80,7 +77,7 @@ public class WebhookClient {
             } catch (IOException e) {
                 VonixCore.LOGGER.error("Error sending webhook payload", e);
             }
-        }, VonixCore.ASYNC_EXECUTOR);
+        });
     }
 
     public void shutdown() {

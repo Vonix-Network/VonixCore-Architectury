@@ -37,7 +37,6 @@ public class DiscordManager {
     private static DiscordManager instance;
     private final BotClient botClient;
     private final WebhookClient webhookClient;
-    private final WebhookClient eventWebhookClient;
     private final MessageConverter messageConverter;
 
     // Embed detection and processing
@@ -63,7 +62,6 @@ public class DiscordManager {
     private DiscordManager() {
         this.botClient = new BotClient();
         this.webhookClient = new WebhookClient();
-        this.eventWebhookClient = new WebhookClient();
         this.messageConverter = new MessageConverter();
     }
 
@@ -102,16 +100,6 @@ public class DiscordManager {
         } else {
             this.eventChannelId = channelId;
             VonixCore.LOGGER.info("[Discord] Using main channel for events.");
-        }
-
-        // Configure event webhook
-        String eventWebhookUrl = DiscordConfig.CONFIG.eventWebhookUrl.get();
-        if (eventWebhookUrl != null && !eventWebhookUrl.isEmpty()) {
-            this.eventWebhookClient.updateUrl(eventWebhookUrl);
-            VonixCore.LOGGER.info("[Discord] Using separate webhook for events: {}", eventWebhookUrl);
-        } else {
-            this.eventWebhookClient.updateUrl(webhookUrl);
-            VonixCore.LOGGER.info("[Discord] Event webhook not configured, falling back to main webhook.");
         }
 
         // 2. Initialize Sub-systems
@@ -153,8 +141,6 @@ public class DiscordManager {
             botClient.disconnect();
         if (webhookClient != null)
             webhookClient.shutdown();
-        if (eventWebhookClient != null)
-            eventWebhookClient.shutdown();
     }
 
     /**
@@ -631,17 +617,7 @@ public class DiscordManager {
             return CompletableFuture.completedFuture(null);
         JsonObject embed = new JsonObject();
         embedBuilder.accept(embed);
-
-        // Use Webhook for reliability (like 1.20.1)
-        String serverName = DiscordConfig.CONFIG.serverName.get();
-        String prefix = DiscordConfig.CONFIG.serverPrefix.get();
-        String avatarUrl = DiscordConfig.CONFIG.serverAvatarUrl.get();
-
-        String username = DiscordConfig.CONFIG.webhookUsernameFormat.get()
-                .replace("{prefix}", prefix != null ? prefix : "")
-                .replace("{username}", serverName != null ? serverName : "Server");
-
-        return eventWebhookClient.sendEmbed(username, avatarUrl, embed).thenApply(v -> null);
+        return botClient.sendEmbed(eventChannelId, embed);
     }
 
     public void sendStartupEmbed(String serverName) {
