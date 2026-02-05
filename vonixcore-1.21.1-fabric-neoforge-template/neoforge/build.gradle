@@ -54,6 +54,7 @@ dependencies {
     shadowBundle "io.vavr:vavr:0.10.4"
     shadowBundle "com.neovisionaries:nv-websocket-client:2.14"
     shadowBundle "com.zaxxer:HikariCP:5.1.0"
+    shadowBundle "org.xerial:sqlite-jdbc:3.45.1.0"
     shadowBundle "org.bouncycastle:bcprov-jdk18on:1.78.1"
 }
 
@@ -102,6 +103,8 @@ shadowJar {
     relocate 'io.vavr', 'network.vonix.vonixcore.shadow.vavr'
     relocate 'com.neovisionaries.ws', 'network.vonix.vonixcore.shadow.nvwebsocket'
     relocate 'org.bouncycastle', 'network.vonix.vonixcore.shadow.bouncycastle'
+
+    mergeServiceFiles()
 }
 
 remapJar {
