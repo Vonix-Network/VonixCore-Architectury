@@ -374,6 +374,7 @@ public class AsyncRtpManager {
     /**
      * Load a chunk asynchronously and wait for result.
      * Returns null on timeout or failure.
+     * Uses non-blocking approach to avoid server deadlock.
      */
     private static ChunkAccess loadChunkAsync(ServerLevel level, ChunkPos pos) {
         CompletableFuture<ChunkAccess> future = new CompletableFuture<>();
@@ -382,9 +383,21 @@ public class AsyncRtpManager {
         scheduleMainThread(level.getServer(), () -> {
             try {
                 ServerChunkCache chunkSource = level.getChunkSource();
+                
+                // First check if chunk is already loaded to avoid blocking
+                ChunkAccess existingChunk = chunkSource.getChunk(pos.x, pos.z, ChunkStatus.SURFACE, false);
+                if (existingChunk != null) {
+                    // Chunk already exists, just add ticket and return
+                    chunkSource.addRegionTicket(RTP_TICKET, pos, 0, pos);
+                    future.complete(existingChunk);
+                    return;
+                }
+                
+                // Chunk not loaded - add ticket and request async load
                 chunkSource.addRegionTicket(RTP_TICKET, pos, 0, pos);
 
                 // Use SURFACE status for fast loading (enough for safety checks)
+                // Use orTimeout to prevent indefinite blocking
                 chunkSource.getChunkFuture(pos.x, pos.z, ChunkStatus.SURFACE, true)
                         .orTimeout(CHUNK_LOAD_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                         .thenAccept(either -> {
@@ -438,10 +451,19 @@ public class AsyncRtpManager {
             ChunkAccess targetChunk = level.getChunk(safePos);
             if (targetChunk == null || !targetChunk.getStatus().isOrAfter(ChunkStatus.FULL)) {
                 VonixCore.LOGGER.warn("[RTP] Target chunk not fully loaded, attempting force load");
-                // Force generation if needed
-                chunkSource.getChunkFuture(chunkPos.x, chunkPos.z, ChunkStatus.FULL, true)
-                        .orTimeout(10, TimeUnit.SECONDS)
-                        .join();
+                // Force generation if needed - use getNow to avoid blocking
+                try {
+                    chunkSource.getChunkFuture(chunkPos.x, chunkPos.z, ChunkStatus.FULL, true)
+                            .orTimeout(5, TimeUnit.SECONDS)
+                            .getNow(null);
+                } catch (Exception e) {
+                    VonixCore.LOGGER.warn("[RTP] Chunk force load timed out or failed: {}", e.getMessage());
+                    // Try one more time with immediate check
+                    targetChunk = level.getChunk(safePos);
+                    if (targetChunk == null || !targetChunk.getStatus().isOrAfter(ChunkStatus.FULL)) {
+                        return false;
+                    }
+                }
             }
 
             // Validate the location is still safe before teleporting

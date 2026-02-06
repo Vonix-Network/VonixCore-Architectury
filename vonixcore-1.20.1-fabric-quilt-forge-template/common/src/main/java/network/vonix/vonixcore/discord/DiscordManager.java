@@ -124,6 +124,8 @@ public class DiscordManager {
         this.botClient.connect(botToken, channelId).thenRun(() -> {
             // 4. Send Startup Message (only after connection)
             sendStartupEmbed(DiscordConfig.CONFIG.serverName.get());
+            // 5. Set initial bot status
+            updateBotStatus();
         });
 
         VonixCore.LOGGER.info("[Discord] Integration initialized.");
@@ -800,9 +802,37 @@ public class DiscordManager {
     }
 
     public void updateBotStatus() {
-        if (botClient != null && server != null) {
-            botClient.updateStatus(server.getPlayerList().getPlayerCount(), server.getPlayerList().getMaxPlayers());
+        if (botClient == null || server == null || !DiscordConfig.CONFIG.setBotStatus.get()) {
+            return;
         }
+        
+        int online = server.getPlayerList().getPlayerCount();
+        int max = server.getPlayerList().getMaxPlayers();
+        String format = DiscordConfig.CONFIG.botStatusFormat.get();
+        String status = format.replace("{online}", String.valueOf(online))
+                              .replace("{max}", String.valueOf(max));
+        
+        // Update status asynchronously to avoid blocking main thread
+        VonixCore.ASYNC_EXECUTOR.submit(() -> botClient.updateStatus(status));
+    }
+    
+    /**
+     * Schedules a status update after a delay (used for player join/leave events).
+     * Non-blocking and thread-safe.
+     */
+    public void scheduleStatusUpdate(int delayMs) {
+        if (botClient == null || server == null || !DiscordConfig.CONFIG.setBotStatus.get()) {
+            return;
+        }
+        
+        VonixCore.ASYNC_EXECUTOR.submit(() -> {
+            try {
+                Thread.sleep(delayMs);
+                updateBotStatus();
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+        });
     }
 
     // =================================================================================

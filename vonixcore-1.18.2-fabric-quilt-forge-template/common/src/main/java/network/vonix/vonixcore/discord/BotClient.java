@@ -76,9 +76,8 @@ public class BotClient {
         });
     }
 
-    public void updateStatus(int online, int max) {
+    public void updateStatus(String status) {
         if (api != null) {
-            String status = "Online: " + online + "/" + max;
             api.updateActivity(ActivityType.PLAYING, status);
         }
     }

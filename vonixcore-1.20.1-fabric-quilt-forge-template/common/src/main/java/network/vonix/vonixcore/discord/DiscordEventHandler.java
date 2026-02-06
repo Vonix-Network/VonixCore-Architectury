@@ -28,25 +28,16 @@ public class DiscordEventHandler {
         PlayerEvent.PLAYER_JOIN.register(player -> {
             if (DiscordManager.getInstance().isRunning()) {
                 DiscordManager.getInstance().sendJoinEmbed(player.getName().getString(), player.getUUID().toString());
-                // Schedule status update slightly later to ensure accurate count
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(1000);
-                        DiscordManager.getInstance().updateStatus();
-                    } catch (InterruptedException ignored) {}
-                }).start();
+                // Schedule status update after delay to ensure accurate player count
+                DiscordManager.getInstance().scheduleStatusUpdate(1000);
             }
         });
 
         PlayerEvent.PLAYER_QUIT.register(player -> {
             if (DiscordManager.getInstance().isRunning()) {
                 DiscordManager.getInstance().sendLeaveEmbed(player.getName().getString(), player.getUUID().toString());
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(1000);
-                        DiscordManager.getInstance().updateStatus();
-                    } catch (InterruptedException ignored) {}
-                }).start();
+                // Schedule status update after delay to ensure accurate player count
+                DiscordManager.getInstance().scheduleStatusUpdate(1000);
             }
         });
 
