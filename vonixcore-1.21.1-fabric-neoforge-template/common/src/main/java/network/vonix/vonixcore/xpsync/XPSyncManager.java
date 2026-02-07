@@ -100,16 +100,28 @@ public class XPSyncManager {
         if (scheduler != null && !scheduler.isShutdown()) {
             VonixCore.LOGGER.info("[XPSync] Stopping service...");
 
-            // Sync ALL players from world data before shutdown
+            // Sync ALL players from world data before shutdown - with timeout to prevent hangs
             VonixCore.LOGGER.info("[XPSync] Running final sync for ALL players...");
-            syncAllPlayersFromWorldDataSync();
+            try {
+                // Run sync on a separate thread with timeout to prevent blocking server shutdown
+                java.util.concurrent.CompletableFuture<Void> syncFuture = java.util.concurrent.CompletableFuture.runAsync(
+                    this::syncAllPlayersFromWorldDataSync, 
+                    VonixCore.ASYNC_EXECUTOR
+                );
+                // Wait max 10 seconds for final sync
+                syncFuture.get(10, TimeUnit.SECONDS);
+            } catch (java.util.concurrent.TimeoutException e) {
+                VonixCore.LOGGER.warn("[XPSync] Final sync timed out, continuing with shutdown");
+            } catch (Exception e) {
+                VonixCore.LOGGER.warn("[XPSync] Final sync failed: {}", e.getMessage());
+            }
 
             scheduler.shutdown();
             try {
-                if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
                     VonixCore.LOGGER.warn("[XPSync] Scheduler did not terminate in time, forcing shutdown...");
                     scheduler.shutdownNow();
-                    if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                    if (!scheduler.awaitTermination(3, TimeUnit.SECONDS)) {
                         VonixCore.LOGGER.error("[XPSync] Scheduler could not be terminated!");
                     }
                 }

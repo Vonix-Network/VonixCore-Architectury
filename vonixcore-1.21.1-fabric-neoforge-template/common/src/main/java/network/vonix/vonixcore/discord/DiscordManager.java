@@ -139,15 +139,32 @@ public class DiscordManager {
 
         VonixCore.LOGGER.info("[Discord] Sending shutdown message...");
         try {
-            sendShutdownEmbed(DiscordConfig.CONFIG.serverName.get()).get(5, TimeUnit.SECONDS);
-            VonixCore.LOGGER.info("[Discord] Shutdown message sent successfully");
+            // Use non-blocking async approach with timeout instead of blocking .get()
+            sendShutdownEmbed(DiscordConfig.CONFIG.serverName.get())
+                .orTimeout(3, TimeUnit.SECONDS)
+                .whenComplete((msg, error) -> {
+                    if (error != null) {
+                        VonixCore.LOGGER.warn("[Discord] Failed to send shutdown message: {}", error.getMessage());
+                    } else {
+                        VonixCore.LOGGER.info("[Discord] Shutdown message sent successfully");
+                    }
+                    
+                    // Continue cleanup after message is sent or times out
+                    continueShutdown();
+                });
+            
+            // Give a short time for the async operation to complete
+            // but don't block the main thread
+            Thread.sleep(100);
         } catch (Exception e) {
             VonixCore.LOGGER.warn("[Discord] Failed to send shutdown message: {}", e.getMessage());
-            // Don't re-throw - continue with cleanup
+            continueShutdown();
         }
 
         running = false;
-
+    }
+    
+    private void continueShutdown() {
         // Disconnect bot client with error handling
         if (botClient != null) {
             try {

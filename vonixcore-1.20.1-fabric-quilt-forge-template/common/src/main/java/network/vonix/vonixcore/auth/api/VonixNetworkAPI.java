@@ -94,13 +94,20 @@ public class VonixNetworkAPI {
         }
     }
 
+    // Hard timeout limits to prevent server hangs - max 8 seconds total
+    private static final int MAX_CONNECT_TIMEOUT = 3000; // 3 seconds max for connection
+    private static final int MAX_READ_TIMEOUT = 5000;    // 5 seconds max for reading
+    
     private static void configureConnection(HttpURLConnection conn, String method, boolean hasBody) throws IOException {
         conn.setRequestMethod(method);
         conn.setRequestProperty("Accept", "application/json");
         conn.setRequestProperty("X-API-Key", AuthConfig.CONFIG.REGISTRATION_API_KEY.get());
         conn.setRequestProperty("User-Agent", "VonixCore/" + VonixCore.VERSION);
-        conn.setConnectTimeout(AuthConfig.CONFIG.API_TIMEOUT.get());
-        conn.setReadTimeout(AuthConfig.CONFIG.API_TIMEOUT.get());
+        // Use shorter timeouts to prevent server hangs - cap at maximum values
+        int connectTimeout = Math.min(AuthConfig.CONFIG.API_TIMEOUT.get(), MAX_CONNECT_TIMEOUT);
+        int readTimeout = Math.min(AuthConfig.CONFIG.API_TIMEOUT.get(), MAX_READ_TIMEOUT);
+        conn.setConnectTimeout(connectTimeout);
+        conn.setReadTimeout(readTimeout);
         if (hasBody) {
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
             conn.setDoOutput(true);
@@ -139,7 +146,15 @@ public class VonixNetworkAPI {
                 err.error = "Connection failed: " + e.getMessage();
                 return err;
             }
-        }, API_EXECUTOR);
+        }, API_EXECUTOR)
+        .orTimeout(10, TimeUnit.SECONDS) // Hard timeout to prevent indefinite hangs
+        .exceptionally(e -> {
+            VonixCore.LOGGER.warn("[VonixNetworkAPI] Login request timed out or failed: {}", e.getMessage());
+            LoginResponse err = new LoginResponse();
+            err.success = false;
+            err.error = "Request timeout - please try again";
+            return err;
+        });
     }
 
     public static CompletableFuture<RegistrationResponse> generateRegistrationCode(String username, String uuid) {
@@ -171,7 +186,14 @@ public class VonixNetworkAPI {
                 err.error = "Connection failed: " + e.getMessage();
                 return err;
             }
-        }, API_EXECUTOR);
+        }, API_EXECUTOR)
+        .orTimeout(10, TimeUnit.SECONDS) // Hard timeout to prevent indefinite hangs
+        .exceptionally(e -> {
+            VonixCore.LOGGER.warn("[VonixNetworkAPI] Registration code request timed out or failed: {}", e.getMessage());
+            RegistrationResponse err = new RegistrationResponse();
+            err.error = "Request timeout - please try again";
+            return err;
+        });
     }
 
     public static CompletableFuture<LoginResponse> registerPlayerWithPassword(String username, String uuid,
@@ -208,7 +230,15 @@ public class VonixNetworkAPI {
                 err.error = "Connection failed: " + e.getMessage();
                 return err;
             }
-        }, API_EXECUTOR);
+        }, API_EXECUTOR)
+        .orTimeout(10, TimeUnit.SECONDS) // Hard timeout to prevent indefinite hangs
+        .exceptionally(e -> {
+            VonixCore.LOGGER.warn("[VonixNetworkAPI] Register with password request timed out or failed: {}", e.getMessage());
+            LoginResponse err = new LoginResponse();
+            err.success = false;
+            err.error = "Request timeout - please try again";
+            return err;
+        });
     }
 
     public static CompletableFuture<RegistrationCheckResponse> checkPlayerRegistration(String username, String uuid) {
@@ -240,7 +270,15 @@ public class VonixNetworkAPI {
                 err.error = "Connection failed: " + e.getMessage();
                 return err;
             }
-        }, API_EXECUTOR);
+        }, API_EXECUTOR)
+        .orTimeout(8, TimeUnit.SECONDS) // Hard timeout to prevent indefinite hangs - slightly shorter for checks
+        .exceptionally(e -> {
+            VonixCore.LOGGER.debug("[VonixNetworkAPI] Registration check timed out or failed: {}", e.getMessage());
+            RegistrationCheckResponse err = new RegistrationCheckResponse();
+            err.registered = false;
+            err.error = "Request timeout";
+            return err;
+        });
     }
 
     private static String parseError(String body, int status) {

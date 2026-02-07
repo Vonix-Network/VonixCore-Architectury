@@ -52,10 +52,12 @@ public class LuckPermsIntegration {
                 Class<?> luckPermsClass = luckPermsApi.getClass();
                 Object userManager = luckPermsClass.getMethod("getUserManager").invoke(luckPermsApi);
 
-                // Load user
+                // Load user with timeout to prevent hanging
                 Object lpUserFuture = userManager.getClass().getMethod("loadUser", UUID.class).invoke(userManager,
                         uuid);
-                Object lpUser = lpUserFuture.getClass().getMethod("join").invoke(lpUserFuture);
+                // Use get with timeout instead of join() to prevent indefinite blocking
+                Object lpUser = ((java.util.concurrent.CompletableFuture<?>) lpUserFuture)
+                        .get(5, java.util.concurrent.TimeUnit.SECONDS);
 
                 if (lpUser == null) {
                     VonixCore.LOGGER.warn("[Auth] Could not load LuckPerms user for {}", uuid);
@@ -78,6 +80,8 @@ public class LuckPermsIntegration {
                     // For now, just log the intent
                     VonixCore.LOGGER.info("[Auth] Would set group '{}' for {}", rankName, uuid);
                 }
+            } catch (java.util.concurrent.TimeoutException e) {
+                VonixCore.LOGGER.warn("[Auth] LuckPerms user load timed out for {}, skipping sync", uuid);
             } catch (Exception e) {
                 VonixCore.LOGGER.error("[Auth] Error syncing LuckPerms rank for {}: {}", uuid, e.getMessage());
             }

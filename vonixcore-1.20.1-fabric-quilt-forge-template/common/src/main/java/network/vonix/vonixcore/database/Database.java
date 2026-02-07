@@ -46,7 +46,12 @@ public class Database {
         config.setMinimumIdle(2);
         config.setIdleTimeout(60000);
         config.setMaxLifetime(1800000);
-        config.setConnectionTimeout(DatabaseConfig.CONFIG.connectionTimeout.get());
+        // Cap connection timeout to prevent server hangs - max 5 seconds for SQLite, 8 for remote DBs
+        int configuredTimeout = DatabaseConfig.CONFIG.connectionTimeout.get();
+        int maxTimeout = databaseType == DatabaseType.SQLITE ? 5000 : 8000;
+        config.setConnectionTimeout(Math.min(configuredTimeout, maxTimeout));
+        // Additional safety: fail fast on connection errors
+        config.setInitializationFailTimeout(1); // Fail immediately if cannot create initial connections
 
         switch (databaseType) {
             case MYSQL -> configureMySql(config);

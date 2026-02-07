@@ -143,10 +143,20 @@ public class AuthenticationManager {
     }
 
     public static void shutdown() {
-        scheduler.shutdown();
         try {
-            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+            // Cancel all pending timeout tasks first
+            timeoutTasks.values().forEach(t -> t.cancel(false));
+            timeoutTasks.clear();
+            
+            scheduler.shutdown();
+            // Use shorter timeout to prevent blocking server shutdown
+            if (!scheduler.awaitTermination(3, TimeUnit.SECONDS)) {
+                VonixCore.LOGGER.warn("[Auth] Scheduler did not terminate in time, forcing shutdown...");
                 scheduler.shutdownNow();
+                // Brief wait for forced shutdown
+                if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) {
+                    VonixCore.LOGGER.error("[Auth] Scheduler could not be terminated!");
+                }
             }
         } catch (InterruptedException e) {
             scheduler.shutdownNow();
