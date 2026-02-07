@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "vonixcore",
+  "version": "${version}",
+  "name": "VonixCore",
+  "description": "VonixCore - Advanced Minecraft server management with Discord integration, cross-server chat, and comprehensive player tracking.",
+  "authors": [
+    "Vonix Network"
+  ],
+  "contact": {
+    "homepage": "https://vonix.network",
+    "sources": "https://github.com/Vonix-Network/VonixCore-Architectury"
+  },
+  "license": "CC0-1.0",
+  "icon": "assets/vonixcore/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "network.vonix.vonixcore.fabric.VonixCoreFabric"
+    ],
+    "client": [
+      "network.vonix.vonixcore.fabric.client.ExampleModFabricClient"
+    ]
+  },
+  "mixins": [
+    "vonixcore.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "~1.19.2",
+    "java": ">=17",
+    "architectury": ">=6.6.92",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}

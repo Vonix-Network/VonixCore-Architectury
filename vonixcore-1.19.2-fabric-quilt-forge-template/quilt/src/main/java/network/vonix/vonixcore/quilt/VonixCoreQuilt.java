@@ -1,0 +1,14 @@
+package network.vonix.vonixcore.quilt;
+
+import org.quiltmc.loader.api.ModContainer;
+import org.quiltmc.qsl.base.api.entrypoint.ModInitializer;
+
+import network.vonix.vonixcore.VonixCore;
+
+public final class VonixCoreQuilt implements ModInitializer {
+    @Override
+    public void onInitialize(ModContainer mod) {
+        // Run our common setup.
+        VonixCore.init();
+    }
+}

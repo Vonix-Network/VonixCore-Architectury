@@ -1,0 +1,182 @@
+plugins {
+    id 'com.gradleup.shadow'
+}
+
+loom {
+    forge {
+        mixinConfig "vonixcore.mixins.json"
+        mixinConfig "vonixcore.forge.mixins.json"
+    }
+}
+
+architectury {
+    platformSetupLoomIde()
+    forge()
+}
+
+configurations {
+    common {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentForge.extendsFrom common
+
+    // Files in this configuration will be bundled into your mod using the Shadow plugin.
+    // Don't use the `shadow` configuration from the plugin itself as it's meant for excluding files.
+    shadowBundle {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+}
+
+dependencies {
+    forge "net.minecraftforge:forge:$rootProject.forge_version"
+
+    // Architectury API. This is optional, and you can comment it out if you don't need it.
+    modImplementation "dev.architectury:architectury-forge:$rootProject.architectury_api_version"
+
+    common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+    shadowBundle project(path: ':common', configuration: 'transformProductionForge')
+
+    // Shadow all dependencies (no JiJ - much faster and reliable)
+    shadowBundle("org.javacord:javacord:3.8.0") {
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-api'
+        exclude group: 'org.slf4j', module: 'slf4j-api'
+    }
+    shadowBundle "com.fasterxml.jackson.core:jackson-databind:2.17.0"
+    shadowBundle "com.fasterxml.jackson.core:jackson-core:2.17.0"
+    shadowBundle "com.fasterxml.jackson.core:jackson-annotations:2.17.0"
+    shadowBundle "com.squareup.okhttp3:okhttp:4.12.0"
+    shadowBundle "com.squareup.okio:okio-jvm:3.9.0"
+    shadowBundle "com.squareup.okio:okio:3.9.0"
+    shadowBundle "io.vavr:vavr:0.10.4"
+    shadowBundle "com.neovisionaries:nv-websocket-client:2.14"
+    shadowBundle "com.zaxxer:HikariCP:5.1.0"
+    shadowBundle "org.xerial:sqlite-jdbc:3.45.1.0"
+    shadowBundle "org.bouncycastle:bcprov-jdk18on:1.78.1"
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'build_time', System.currentTimeMillis()
+
+    filesMatching('META-INF/mods.toml') {
+        expand version: inputs.properties.version
+    }
+}
+
+// BEST PRACTICE: shadowJar first, then remapJar remaps the shadow output
+// Flow: jar -> shadowJar (with relocations) -> remapJar
+
+shadowJar {
+    configurations = [project.configurations.shadowBundle]
+    archiveClassifier = 'dev-shadow'
+    
+    // Exclude logging libraries
+    exclude 'org/slf4j/**'
+    exclude 'org/apache/logging/**'
+
+    // Exclude module-info.class 
+    exclude '**/module-info.class'
+    exclude 'META-INF/versions/**'
+    exclude 'META-INF/proguard/**'
+    exclude 'META-INF/maven/**'
+    exclude 'META-INF/LICENSE*'
+    exclude 'META-INF/NOTICE*'
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+    
+    // Exclude service files with unrelocated package names (causes JPMS module conflicts)
+    exclude 'META-INF/services/com.fasterxml.jackson.*'
+    // exclude 'META-INF/services/org.javacord.*' // Keeping this enabled to fix "No DelegateFactoryDelegate" crash
+    
+    mergeServiceFiles()
+
+    // Relocate ALL dependencies to avoid module conflicts
+    // Exclude Javacord internal classes from shadowing to prevent class loading issues
+    exclude 'org.javacord.core.util.rest.**'
+    exclude 'org.javacord.core.entity.**'
+    exclude 'org.javacord.core.audio.**'
+    exclude 'org.javacord.core.util.logging.**'
+    exclude 'org.javacord.core.util.gateway.**'
+    exclude 'org.javacord.core.util.event.**'
+    exclude 'org.javacord.core.util.file.**'
+    exclude 'org.javacord.core.util.auth.**'
+    exclude 'org.javacord.core.util.read.**'
+    exclude 'org.javacord.core.common.**'
+    
+    relocate 'org.javacord', 'network.vonix.vonixcore.shadow.javacord'
+    relocate 'okhttp3', 'network.vonix.vonixcore.shadow.okhttp3'
+    relocate 'okio', 'network.vonix.vonixcore.shadow.okio'
+    relocate 'com.fasterxml.jackson', 'network.vonix.vonixcore.shadow.jackson'
+    relocate 'com.zaxxer.hikari', 'network.vonix.vonixcore.shadow.hikari'
+    relocate 'io.vavr', 'network.vonix.vonixcore.shadow.vavr'
+    relocate 'com.neovisionaries.ws', 'network.vonix.vonixcore.shadow.nvwebsocket'
+    relocate 'org.bouncycastle', 'network.vonix.vonixcore.shadow.bouncycastle'
+    relocate 'kotlin', 'network.vonix.vonixcore.shadow.kotlin'
+    relocate 'kotlinx', 'network.vonix.vonixcore.shadow.kotlinx'
+    relocate 'org.jetbrains', 'network.vonix.vonixcore.shadow.jetbrains'
+    relocate 'org.intellij', 'network.vonix.vonixcore.shadow.intellij'
+
+    manifest {
+        attributes([
+            "MixinConfigs": "vonixcore.mixins.json,vonixcore.forge.mixins.json"
+        ])
+    }
+}
+
+remapJar {
+    inputFile.set shadowJar.archiveFile
+}
+
+task verifyShadowJar {
+    dependsOn shadowJar
+    doLast {
+        def jarFile = shadowJar.archiveFile.get().asFile
+        def zip = zipTree(jarFile)
+        
+        // Check for unrelocated Jackson
+        def jacksonFiles = zip.matching { include 'com/fasterxml/jackson/**' }.files
+        if (!jacksonFiles.isEmpty()) {
+             println "FAILURE: Found " + jacksonFiles.size() + " unrelocated Jackson files."
+             jacksonFiles.take(5).each { println " - " + it.name }
+        } else {
+             println "SUCCESS: No unrelocated Jackson classes found."
+        }
+        
+        // Check for module-info.class
+        def moduleInfos = zip.matching { include '**/module-info.class' }.files
+        if (!moduleInfos.isEmpty()) {
+             println "FAILURE: Found " + moduleInfos.size() + " module-info.class files!"
+             moduleInfos.each { println " - " + it }
+        } else {
+             println "SUCCESS: No module-info.class found."
+        }
+
+        // Check for relocated Jackson
+        def relocatedFiles = zip.matching { include 'network/vonix/vonixcore/shadow/jackson/**' }.files
+        if (relocatedFiles.isEmpty()) {
+             println "FAILURE: No RELOCATED Jackson files found! Dependency is missing from the jar."
+             throw new RuntimeException("Shadow jar is missing Jackson dependencies entirely!")
+        } else {
+             println "SUCCESS: Found " + relocatedFiles.size() + " relocated Jackson files."
+        }
+        
+        if (!jacksonFiles.isEmpty() || !moduleInfos.isEmpty()) {
+            throw new RuntimeException("Shadow jar verification failed!")
+        }
+        
+        // Check Manifest for Automatic-Module-Name
+        def manifestContent = zip.matching { include 'META-INF/MANIFEST.MF' }.singleFile.text
+        if (manifestContent.contains('Automatic-Module-Name')) {
+             println "FAILURE: Found 'Automatic-Module-Name' in Manifest! This causes module conflicts."
+             println manifestContent.split('\n').find { it.contains('Automatic-Module-Name') }
+             throw new RuntimeException("Manifest contains Automatic-Module-Name!")
+        } else {
+             println "SUCCESS: No Automatic-Module-Name in Manifest."
+        }
+    }
+}
