@@ -3,6 +3,7 @@ setlocal enabledelayedexpansion
 
 :: ============================================================================
 :: VonixCore Build All - Java 21 Optimized with JAR Collection
+:: Fixed: Removed invalid 'continue' commands
 :: ============================================================================
 
 :: Auto-detect Java 21
@@ -87,13 +88,14 @@ set "VER_NAME=%VER_DIR:vonixcore-=%"
 for %%p in (fabric, forge, quilt, neoforge) do (
     if exist "%ROOT_DIR%%VER_DIR%\%%p\build\libs" (
         for %%f in ("%ROOT_DIR%%VER_DIR%\%%p\build\libs\*.jar") do (
-            :: Skip sources and javadoc JARs
-            echo %%~nxf | findstr /i "sources" >nul && continue
-            echo %%~nxf | findstr /i "javadoc" >nul && continue
+            :: Skip sources and javadoc JARs - using goto instead of continue
+            echo %%~nxf | findstr /i "sources" >nul && goto :skip_copy
+            echo %%~nxf | findstr /i "javadoc" >nul && goto :skip_copy
             
             :: Copy with version prefix
             copy "%%f" "%BUILDS_DIR%\[%VER_NAME%]_[%%p]_%%~nxf" >nul
             echo   Copied: [%%p] %%~nxf
+            :skip_copy
         )
     )
 )

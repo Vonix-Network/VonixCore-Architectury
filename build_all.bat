@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 :: ============================================================================
 :: VonixCore Multi-Version Build Script with JAR Collection
-:: Builds: 1.18.2 ? 1.19.2 ? 1.20.1 ? 1.21.1
+:: Fixed: Removed invalid 'continue' commands
 :: ============================================================================
 
 :: Colors for Windows CMD (try to enable ANSI)
@@ -136,7 +136,7 @@ echo.
 
 :: List collected JARs
 echo %CYAN%Collected JARs:%RESET%
-dir /b "%BUILDS_DIR%\*.jar" 2^>nul | findstr /n "^" | findstr "^" && (
+dir /b "%BUILDS_DIR%\*.jar" 2^>nul && (
     echo.
     for %%f in ("%BUILDS_DIR%\*.jar") do (
         echo   %GREEN%^-> %%~nxf%RESET%
@@ -272,13 +272,14 @@ call :log_info "Collecting JARs for %VER_NAME%..."
 for %%p in (fabric, forge, quilt, neoforge) do (
     if exist "%ROOT_DIR%%VER_DIR%\%%p\build\libs" (
         for %%f in ("%ROOT_DIR%%VER_DIR%\%%p\build\libs\*.jar") do (
-            :: Skip sources and javadoc JARs
-            echo %%~nxf | findstr /i "sources" >nul && continue
-            echo %%~nxf | findstr /i "javadoc" >nul && continue
+            :: Skip sources and javadoc JARs - using goto instead of continue
+            echo %%~nxf | findstr /i "sources" >nul && goto :next_jar
+            echo %%~nxf | findstr /i "javadoc" >nul && goto :next_jar
             
             :: Copy with version prefix
             copy "%%f" "%BUILDS_DIR%\[%VER_NAME%]_[%%p]_%%~nxf" >nul
             call :log_info "Copied: [%%p] %%~nxf"
+            :next_jar
         )
     )
 )

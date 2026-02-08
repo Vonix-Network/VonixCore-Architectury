@@ -1,5 +1,6 @@
 @echo off
 :: Quick build script for single version with JAR collection
+:: Fixed: Removed invalid 'continue' commands
 :: Usage: build.bat [1.18.2|1.19.2|1.20.1|1.21.1]
 
 setlocal enabledelayedexpansion
@@ -62,12 +63,13 @@ echo [INFO] Collecting JARs...
 for %%p in (fabric, forge, quilt, neoforge) do (
     if exist "%%p\build\libs\*.jar" (
         for %%f in ("%%p\build\libs\*.jar") do (
-            :: Skip sources and javadoc
-            echo %%~nxf | findstr /i "sources" >nul && continue
-            echo %%~nxf | findstr /i "javadoc" >nul && continue
+            :: Skip sources and javadoc - using goto instead of continue
+            echo %%~nxf | findstr /i "sources" >nul && goto :skip_single
+            echo %%~nxf | findstr /i "javadoc" >nul && goto :skip_single
             
             copy "%%f" "%BUILDS_DIR%\[%VERSION%]_[%%p]_%%~nxf" >nul
             echo   Copied: [%%p] %%~nxf
+            :skip_single
         )
     )
 )

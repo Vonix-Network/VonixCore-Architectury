@@ -2,8 +2,8 @@
 setlocal enabledelayedexpansion
 
 :: ============================================================================
-:: VonixCore Multi-Version Build Script with JAR Collection
-:: Supports: Java 17, 21, 25
+:: VonixCore Build Menu - Java Auto-Detection with JAR Collection
+:: Fixed: Removed invalid 'continue' commands
 :: ============================================================================
 
 :: Check for available Java versions
@@ -220,10 +220,13 @@ echo [INFO] Collecting JARs for %VER%...
 for %%p in (fabric, forge, quilt, neoforge) do (
     if exist "%ROOT_DIR%%DIR%\%%p\build\libs" (
         for %%f in ("%ROOT_DIR%%DIR%\%%p\build\libs\*.jar") do (
-            echo %%~nxf | findstr /i "sources" >nul && continue
-            echo %%~nxf | findstr /i "javadoc" >nul && continue
+            :: Skip sources and javadoc - using goto instead of continue
+            echo %%~nxf | findstr /i "sources" >nul && goto :skip_jar
+            echo %%~nxf | findstr /i "javadoc" >nul && goto :skip_jar
+            
             copy "%%f" "%BUILDS_DIR%\[%VER%]_[%%p]_%%~nxf" >nul
             echo   Copied: [%%p] %%~nxf
+            :skip_jar
         )
     )
 )
