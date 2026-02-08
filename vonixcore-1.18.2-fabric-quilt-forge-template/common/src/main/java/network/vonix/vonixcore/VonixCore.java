@@ -109,15 +109,31 @@ public class VonixCore {
         LOGGER.info("[{}] Initializing modules...", MOD_NAME);
         List<String> enabledModules = new ArrayList<>();
 
-        // Initialize database (always needed)
+        // Initialize database (always needed) - with timeout protection
         try {
             database = new Database(server);
-            database.initialize();
+            // Use async initialization with timeout to prevent server startup hangs
+            java.util.concurrent.CompletableFuture<Void> dbInitFuture = java.util.concurrent.CompletableFuture.runAsync(() -> {
+                try {
+                    database.initialize();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }, ASYNC_EXECUTOR);
+            
+            // Wait for database initialization with timeout
+            dbInitFuture.get(15, TimeUnit.SECONDS);
             LOGGER.info("[{}] Database initialized", MOD_NAME);
+        } catch (java.util.concurrent.TimeoutException e) {
+            LOGGER.error("[{}] Database initialization timed out after 15 seconds!", MOD_NAME);
+            LOGGER.error("[{}] The server will continue without database functionality.", MOD_NAME);
+            database = null;
+            // Continue without database rather than crashing
         } catch (Exception e) {
             LOGGER.error("[{}] Failed to initialize database: {}", MOD_NAME, e.getMessage());
             e.printStackTrace();
-            return; // Cannot continue without database
+            database = null;
+            // Continue without database for essential functions
         }
 
         // Force initialize TeleportManager to catch class loading errors early
@@ -130,7 +146,7 @@ public class VonixCore {
         }
 
         // Initialize Essentials module
-        if (EssentialsConfig.CONFIG.enabled.get()) {
+        if (EssentialsConfig.CONFIG.enabled.get() && database != null) {
             try (Connection conn = database.getConnection()) {
                 if (EssentialsConfig.CONFIG.homesEnabled.get()) {
                     HomeManager.getInstance().initializeTable(conn);
@@ -155,6 +171,8 @@ public class VonixCore {
             } catch (Exception e) {
                 LOGGER.error("[{}] Failed to initialize Essentials: {}", MOD_NAME, e.getMessage());
             }
+        } else if (EssentialsConfig.CONFIG.enabled.get()) {
+            LOGGER.warn("[{}] Cannot enable Essentials - database not available", MOD_NAME);
         }
 
         // Initialize XPSync module
@@ -187,9 +205,18 @@ public class VonixCore {
         // Initialize Discord module (requires server to be fully started)
         if (DiscordConfig.CONFIG.enabled.get()) {
             try {
-                DiscordManager.getInstance().initialize(server);
+                // Initialize with timeout protection to prevent hanging server startup
+                java.util.concurrent.CompletableFuture<Void> discordInitFuture = java.util.concurrent.CompletableFuture.runAsync(() -> {
+                    DiscordManager.getInstance().initialize(server);
+                }, ASYNC_EXECUTOR);
+                
+                // Wait max 10 seconds for Discord initialization
+                discordInitFuture.get(10, TimeUnit.SECONDS);
                 discordEnabled = true;
                 LOGGER.info("[{}] Discord module enabled", MOD_NAME);
+            } catch (java.util.concurrent.TimeoutException e) {
+                LOGGER.error("[{}] Discord initialization timed out after 10 seconds!", MOD_NAME);
+                LOGGER.error("[{}] Discord features will be unavailable.", MOD_NAME);
             } catch (Exception e) {
                 LOGGER.error("[{}] Failed to initialize Discord: {}", MOD_NAME, e.getMessage());
             }

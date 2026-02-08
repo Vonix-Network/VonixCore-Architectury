@@ -98,7 +98,7 @@ public class VonixCoreCommands {
 
     private static int showVersion(CommandContext<CommandSourceStack> ctx) {
         ctx.getSource().sendSuccess(() -> Component.literal("§6[VonixCore] §fVersion: §e" + VonixCore.VERSION), false);
-        ctx.getSource().sendSuccess(() -> Component.literal("§7Platform: Architectury 1.20.1"), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("§7Platform: Architectury 1.21.1"), false);
         return 1;
     }
 

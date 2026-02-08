@@ -224,6 +224,7 @@ public class TeleportManager {
     public void clear() {
         tpaRequests.clear();
         lastLocations.clear();
+        deathLocations.clear();
         cooldowns.clear();
     }
 

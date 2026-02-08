@@ -15,6 +15,7 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap;
 import network.vonix.vonixcore.VonixCore;
+import network.vonix.vonixcore.config.EssentialsConfig;
 
 import java.util.Comparator;
 import java.util.Set;
@@ -81,13 +82,11 @@ public class AsyncRtpManager {
     // ===== PUBLIC API =====
 
     private static int getMinDistance() {
-        // 1.19.2 version uses config if available, otherwise default
-        return 500;
+        return EssentialsConfig.CONFIG.rtpMinRange.get();
     }
 
     private static int getMaxDistance() {
-        // 1.19.2 version uses config if available, otherwise default
-        return 10000;
+        return EssentialsConfig.CONFIG.rtpMaxRange.get();
     }
 
     /**
