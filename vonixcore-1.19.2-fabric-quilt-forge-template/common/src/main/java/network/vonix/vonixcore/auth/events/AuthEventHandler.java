@@ -101,6 +101,7 @@ public class AuthEventHandler {
         });
 
         // Item Pickup - PlayerEvent.PICKUP_ITEM
+        // NOTE: PICKUP_ITEM event not available in Architectury API - requires Mixin for full implementation
         /*
         PlayerEvent.PICKUP_ITEM.register((player, itemEntity) -> {
             if (player instanceof ServerPlayer) {
@@ -124,8 +125,23 @@ public class AuthEventHandler {
             return CompoundEventResult.pass();
         });
 
-        // Chat
+        // Chat - Block chat for frozen/unauthenticated players
         ChatEvent.RECEIVED.register((player, component) -> {
+            if (player instanceof ServerPlayer) {
+                ServerPlayer serverPlayer = (ServerPlayer) player;
+                UUID uuid = serverPlayer.getUUID();
+                if (isFrozen(uuid)) {
+                    // Rate limit reminder messages (every 5 seconds)
+                    long now = System.currentTimeMillis();
+                    Long last = lastChatReminder.get(uuid);
+                    if (last == null || (now - last) >= 5000) {
+                        serverPlayer.sendSystemMessage(Component.literal(
+                            "§cYou must authenticate! Use §e/login <password>§c or §e/register <password>"));
+                        lastChatReminder.put(uuid, now);
+                    }
+                    return EventResult.interruptFalse();
+                }
+            }
             return EventResult.pass();
         });
         
