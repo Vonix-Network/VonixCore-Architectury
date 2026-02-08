@@ -1,17 +1,22 @@
 @echo off
-:: Quick build script for single version
+:: Quick build script for single version with JAR collection
 :: Usage: build.bat [1.18.2|1.19.2|1.20.1|1.21.1]
+
+setlocal enabledelayedexpansion
+
+set "ROOT_DIR=%~dp0"
+set "BUILDS_DIR=%ROOT_DIR%Builds"
 
 if "%~1"=="" (
     echo Usage: build.bat [version]
     echo Available versions: 1.18.2, 1.19.2, 1.20.1, 1.21.1
     echo.
-    echo To build all versions, use: build_all.bat
+    echo To build all versions, use: build_all_simple.bat
     exit /b 1
 )
 
 set "VERSION=%~1"
-set "ROOT=%~dp0"
+set "DIR="
 
 if "%VERSION%"=="1.18.2" (
     set "DIR=vonixcore-1.18.2-fabric-quilt-forge-template"
@@ -27,18 +32,22 @@ if "%VERSION%"=="1.18.2" (
     exit /b 1
 )
 
+:: Create Builds directory if not exists
+if not exist "%BUILDS_DIR%" mkdir "%BUILDS_DIR%"
+
 echo ========================================
 echo Building VonixCore %VERSION%
 echo ========================================
 echo.
 
-cd /d "%ROOT%%DIR%"
+cd /d "%ROOT_DIR%%DIR%"
 
 echo [INFO] Building all modules...
 call gradlew.bat build --parallel --build-cache --configure-on-demand
 
 if %errorlevel% neq 0 (
     echo [ERROR] Build failed!
+    cd /d "%ROOT_DIR%"
     exit /b 1
 )
 
@@ -47,13 +56,22 @@ echo ========================================
 echo Build completed successfully!
 echo ========================================
 echo.
-echo Output JARs:
+
+:: Copy JARs to Builds directory
+echo [INFO] Collecting JARs...
 for %%p in (fabric, forge, quilt, neoforge) do (
     if exist "%%p\build\libs\*.jar" (
         for %%f in ("%%p\build\libs\*.jar") do (
-            echo   - %%~nxf
+            :: Skip sources and javadoc
+            echo %%~nxf | findstr /i "sources" >nul && continue
+            echo %%~nxf | findstr /i "javadoc" >nul && continue
+            
+            copy "%%f" "%BUILDS_DIR%\[%VERSION%]_[%%p]_%%~nxf" >nul
+            echo   Copied: [%%p] %%~nxf
         )
     )
 )
 
-cd /d "%ROOT%"
+echo.
+echo JARs collected in: %BUILDS_DIR%
+cd /d "%ROOT_DIR%"

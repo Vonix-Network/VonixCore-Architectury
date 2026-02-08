@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 :: ============================================================================
-:: VonixCore Multi-Version Build Script
+:: VonixCore Multi-Version Build Script with JAR Collection
 :: Builds: 1.18.2 ? 1.19.2 ? 1.20.1 ? 1.21.1
 :: ============================================================================
 
@@ -15,7 +15,6 @@ set "BLUE="
 set "CYAN="
 set "MAGENTA="
 
-:: Try to enable ANSI colors (Windows 10+)
 for /f "tokens=3" %%a in ('reg query "HKCU\Console" /v VirtualTerminalLevel 2^>nul ^| findstr "0x1"') do (
     set "GREEN=[92m"
     set "RED=[91m"
@@ -31,6 +30,7 @@ for /f "tokens=3" %%a in ('reg query "HKCU\Console" /v VirtualTerminalLevel 2^>n
 :: ============================================================================
 set "ROOT_DIR=%~dp0"
 set "BUILD_LOG=%ROOT_DIR%build_all.log"
+set "BUILDS_DIR=%ROOT_DIR%Builds"
 
 :: Version directories
 set "V_1_18_2=vonixcore-1.18.2-fabric-quilt-forge-template"
@@ -51,16 +51,27 @@ echo. > "%BUILD_LOG%"
 :: ============================================================================
 cls
 echo %BLUE%================================================================================%RESET%
-echo %BLUE%  VonixCore Multi-Version Build System%RESET%
+echo %BLUE%  VonixCore Multi-Version Build System with JAR Collection%RESET%
 echo %BLUE%================================================================================%RESET%
 echo.
 echo %YELLOW%Build Order:%RESET% 1.18.2 -^> 1.19.2 -^> 1.20.1 -^> 1.21.1
+echo %YELLOW%Output Directory:%RESET% %BUILDS_DIR%
 echo %YELLOW%Started:%RESET% %date% %time%
 echo %YELLOW%Log File:%RESET% build_all.log
 echo.
 echo %MAGENTA%Press any key to start building...%RESET%
 pause ^>nul
 cls
+
+:: Prepare Builds directory
+call :draw_header "PREPARING BUILDS DIRECTORY"
+if exist "%BUILDS_DIR%" (
+    rmdir /s /q "%BUILDS_DIR%"
+    call :log_info "Cleaned existing Builds directory"
+)
+mkdir "%BUILDS_DIR%"
+call :log_info "Created fresh Builds directory"
+echo.
 
 :: ============================================================================
 :: Build Functions
@@ -120,12 +131,19 @@ echo   %GREEN%SUCCESS: %SUCCESS_COUNT%/%TOTAL_COUNT%%RESET%
 echo   %RED%FAILED: %FAIL_COUNT%/%TOTAL_COUNT%%RESET%
 echo.
 
-:: List output JARs
-echo %CYAN%Output JARs:%RESET%
-call :list_jars "1.18.2" "%V_1_18_2%"
-call :list_jars "1.19.2" "%V_1_19_2%"
-call :list_jars "1.20.1" "%V_1_20_1%"
-call :list_jars "1.21.1" "%V_1_21_1%"
+echo %CYAN%Output Directory:%RESET% %BUILDS_DIR%
+echo.
+
+:: List collected JARs
+echo %CYAN%Collected JARs:%RESET%
+dir /b "%BUILDS_DIR%\*.jar" 2^>nul | findstr /n "^" | findstr "^" && (
+    echo.
+    for %%f in ("%BUILDS_DIR%\*.jar") do (
+        echo   %GREEN%^-> %%~nxf%RESET%
+    )
+) || (
+    echo   %YELLOW%No JARs found%RESET%
+)
 
 echo.
 echo %YELLOW%Completed:%RESET% %date% %time%
@@ -181,12 +199,14 @@ if not exist "%ROOT_DIR%%VER_DIR%" (
     exit /b 1
 )
 
-cd /d "%ROOT_DIR%%VER_DIR%"
+cd "%ROOT_DIR%%VER_DIR%"
 
 call :log_info "Building Common module..."
 call gradlew.bat :common:build --parallel --build-cache --configure-on-demand >> "%BUILD_LOG%" 2>&1
+
 if !errorlevel! neq 0 (
     call :log_error "Common module build failed for %VER_NAME%"
+    cd ..
     exit /b 1
 )
 call :log_info "Common module built successfully"
@@ -235,28 +255,31 @@ echo %PLATFORMS% | findstr /i "neoforge" >nul && (
     )
 )
 
-cd /d "%ROOT_DIR%"
+cd "%ROOT_DIR%"
 call :log_info "VonixCore %VER_NAME% build completed"
+
+:: Copy JARs
+call :copy_jars "%VER_NAME%" "%VER_DIR%"
+
 goto :eof
 
-:list_jars
+:copy_jars
 set "VER_NAME=%~1"
 set "VER_DIR=%~2"
 
-echo.
-echo %CYAN%[%VER_NAME%]%RESET%
+call :log_info "Collecting JARs for %VER_NAME%..."
 
 for %%p in (fabric, forge, quilt, neoforge) do (
-    if exist "%ROOT_DIR%%VER_DIR%\%%p\build\libs\*.jar" (
+    if exist "%ROOT_DIR%%VER_DIR%\%%p\build\libs" (
         for %%f in ("%ROOT_DIR%%VER_DIR%\%%p\build\libs\*.jar") do (
-            echo   %GREEN%^-> %%~nxf%RESET%
+            :: Skip sources and javadoc JARs
+            echo %%~nxf | findstr /i "sources" >nul && continue
+            echo %%~nxf | findstr /i "javadoc" >nul && continue
+            
+            :: Copy with version prefix
+            copy "%%f" "%BUILDS_DIR%\[%VER_NAME%]_[%%p]_%%~nxf" >nul
+            call :log_info "Copied: [%%p] %%~nxf"
         )
-    )
-)
-
-if exist "%ROOT_DIR%%VER_DIR%\common\build\libs\*.jar" (
-    for %%f in ("%ROOT_DIR%%VER_DIR%\common\build\libs\*.jar") do (
-        echo   %YELLOW%[common] %%~nxf%RESET%
     )
 )
 goto :eof
