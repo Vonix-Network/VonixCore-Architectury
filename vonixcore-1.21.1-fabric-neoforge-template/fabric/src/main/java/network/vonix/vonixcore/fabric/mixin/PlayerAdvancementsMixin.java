@@ -36,13 +36,17 @@ public abstract class PlayerAdvancementsMixin {
             return;
         }
 
+        VonixCore.LOGGER.debug("[Discord] Advancement awarded: {}", advancementHolder.id());
+
         // Check if Discord integration is running
         if (!DiscordManager.getInstance().isRunning()) {
+            VonixCore.LOGGER.debug("[Discord] Not sending advancement - Discord not running");
             return;
         }
 
         // Check if advancement notifications are enabled
         if (!DiscordConfig.CONFIG.sendAdvancement.get()) {
+            VonixCore.LOGGER.debug("[Discord] Not sending advancement - disabled in config");
             return;
         }
 
@@ -64,12 +68,14 @@ public abstract class PlayerAdvancementsMixin {
             String advancementTitle = display.getTitle().getString();
             String advancementDescription = display.getDescription().getString();
 
+            VonixCore.LOGGER.info("[Discord] Sending advancement to Discord: {} - {}", username, advancementTitle);
+
             DiscordManager.getInstance().sendAdvancementEmbed(
                     username,
                     advancementTitle,
                     advancementDescription);
         } catch (Exception e) {
-            // Silently fail - don't break advancement system
+            VonixCore.LOGGER.error("[Discord] Failed to send advancement", e);
         }
     }
 }
