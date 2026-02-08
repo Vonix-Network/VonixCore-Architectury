@@ -116,6 +116,10 @@ public class VonixCore {
         
         // Register Essentials events
         network.vonix.vonixcore.listener.EssentialsEventHandler.init();
+        
+        // Register Auth events and initialize freeze cache
+        network.vonix.vonixcore.auth.events.AuthEventHandler.init();
+        network.vonix.vonixcore.auth.AuthenticationManager.updateFreezeCache();
     }
 
     private void onServerStarting(net.minecraft.server.MinecraftServer server) {

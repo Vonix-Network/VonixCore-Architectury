@@ -4,7 +4,10 @@
     "compatibilityLevel": "JAVA_17",
     "refmap": "vonixcore-forge-forge-refmap.json",
     "mixins": [
-        "ServerGamePacketListenerMixin"
+        "ServerGamePacketListenerMixin",
+        "AuthCommandBlockerMixin",
+        "AuthItemPickupMixin",
+        "AuthEntityInteractionMixin"
     ],
     "minVersion": "0.8"
 }

@@ -5,7 +5,10 @@
     "compatibilityLevel": "JAVA_21",
     "mixins": [
         "ServerGamePacketListenerMixin",
-        "PlayerAdvancementsMixin"
+        "PlayerAdvancementsMixin",
+        "AuthCommandBlockerMixin",
+        "AuthItemPickupMixin",
+        "AuthEntityInteractionMixin"
     ],
     "client": [],
     "server": [],

@@ -4,7 +4,10 @@
     "package": "network.vonix.vonixcore.neoforge.mixin",
     "compatibilityLevel": "JAVA_21",
     "mixins": [
-        "ServerGamePacketListenerMixin"
+        "ServerGamePacketListenerMixin",
+        "AuthCommandBlockerMixin",
+        "AuthItemPickupMixin",
+        "AuthEntityInteractionMixin"
     ],
     "client": [],
     "server": [],
