@@ -4,6 +4,7 @@ import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.DisplayInfo;
 import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ServerPlayer;
+import network.vonix.vonixcore.VonixCore;
 import network.vonix.vonixcore.config.DiscordConfig;
 import network.vonix.vonixcore.discord.DiscordManager;
 import org.spongepowered.asm.mixin.Mixin;

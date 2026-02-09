@@ -94,6 +94,12 @@ public class AsyncRtpManager {
      * Requests are processed one at a time to minimize server impact.
      */
     public static void randomTeleport(ServerPlayer player) {
+        // Check if async chunk loading is disabled - use synchronous fallback
+        if (!EssentialsConfig.CONFIG.rtpAsyncChunkLoading.get()) {
+            SyncRtpFallback.randomTeleportSync(player);
+            return;
+        }
+        
         UUID playerUuid = player.getUUID();
 
         // Prevent duplicate requests

@@ -33,6 +33,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * - Block state reads use ChunkAccess (thread-safe, off main thread)
  * - Main thread only used for: teleport + ticket operations
  * - Near-zero main thread impact during chunk searching
+ * 
+ * TRULY NON-BLOCKING: Uses CompletableFuture chains to avoid worker thread blocking
+ * and prevent deadlocks with mods that hook chunk loading.
  */
 public class AsyncRtpManager {
 
@@ -94,6 +97,12 @@ public class AsyncRtpManager {
      * Requests are processed one at a time to minimize server impact.
      */
     public static void randomTeleport(ServerPlayer player) {
+        // Check if async chunk loading is disabled - use synchronous fallback
+        if (!EssentialsConfig.CONFIG.rtpAsyncChunkLoading.get()) {
+            SyncRtpFallback.randomTeleportSync(player);
+            return;
+        }
+        
         UUID playerUuid = player.getUUID();
 
         // Prevent duplicate requests
@@ -130,111 +139,113 @@ public class AsyncRtpManager {
 
     /**
      * Main queue processing loop - runs on worker thread.
-     * Processes requests one at a time sequentially.
+     * Processes requests one at a time asynchronously.
      */
     private static void processQueue() {
-        try {
-            while (!requestQueue.isEmpty()) {
-                RtpRequest request = requestQueue.poll();
-                if (request == null)
-                    continue;
-
-                // Check if player is still online
-                if (!request.player.isAlive() || request.player.hasDisconnected()) {
-                    pendingPlayers.remove(request.player.getUUID());
-                    continue;
-                }
-
-                // Process this request (blocking until complete)
-                processRtpRequest(request);
-            }
-        } finally {
+        processNextRequest().thenRun(() -> {
             processorRunning.set(false);
             // Check if more requests came in while we were finishing
             if (!requestQueue.isEmpty()) {
                 startQueueProcessor();
             }
+        });
+    }
+    
+    /**
+     * Process requests recursively to ensure sequential processing.
+     */
+    private static CompletableFuture<Void> processNextRequest() {
+        RtpRequest request = requestQueue.poll();
+        if (request == null) {
+            return CompletableFuture.completedFuture(null);
         }
+
+        // Check if player is still online
+        if (!request.player.isAlive() || request.player.hasDisconnected()) {
+            pendingPlayers.remove(request.player.getUUID());
+            return processNextRequest(); // Process next
+        }
+
+        // Process this request and chain to next
+        return processRtpRequest(request).thenCompose(v -> processNextRequest());
     }
 
     /**
      * Process a single RTP request. Runs on worker thread.
+     * Fully async to prevent ServerHangWatchdog crashes.
      */
-    private static void processRtpRequest(RtpRequest request) {
+    private static CompletableFuture<Void> processRtpRequest(RtpRequest request) {
+        return processRtpRequestRecursive(request, 1);
+    }
+    
+    /**
+     * Recursive async search for safe RTP location.
+     */
+    private static CompletableFuture<Void> processRtpRequestRecursive(RtpRequest request, int attempt) {
         ServerPlayer player = request.player;
         ServerLevel level = request.level;
         BlockPos center = request.center;
         UUID playerUuid = player.getUUID();
-        boolean teleportSuccess = false;
 
-        try {
-            AtomicInteger attemptCounter = new AtomicInteger(0);
-            BlockPos safePos = null;
-
-            // Search loop - runs entirely on worker thread
-            for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-                attemptCounter.set(attempt);
-
-                // Progress feedback every 10 attempts
-                if (attempt % 10 == 0) {
-                    final int currentAttempt = attempt;
-                    scheduleMainThread(player.getServer(), () -> {
-                        if (player.isAlive() && !player.hasDisconnected()) {
-                            player.sendSystemMessage(Component.literal(
-                                    "§7Searching... (attempt " + currentAttempt + "/" + MAX_ATTEMPTS + ")"));
-                        }
-                    });
+        if (attempt > MAX_ATTEMPTS) {
+            // Exhausted all attempts
+            scheduleMainThread(player.getServer(), () -> {
+                if (player.isAlive() && !player.hasDisconnected()) {
+                    player.sendSystemMessage(Component.literal(
+                            "§cCould not find a safe location after " + MAX_ATTEMPTS + " attempts!"));
                 }
+            });
+            pendingPlayers.remove(playerUuid);
+            return CompletableFuture.completedFuture(null);
+        }
 
-                // Generate random coordinates
-                ThreadLocalRandom random = ThreadLocalRandom.current();
-                double angle = random.nextDouble() * 2 * Math.PI;
-                int minDist = getMinDistance();
-                int maxDist = getMaxDistance();
-                int dist = minDist + random.nextInt(Math.max(1, maxDist - minDist));
-                int x = center.getX() + (int) (Math.cos(angle) * dist);
-                int z = center.getZ() + (int) (Math.sin(angle) * dist);
-
-                ChunkPos chunkPos = new ChunkPos(x >> 4, z >> 4);
-
-                // Load chunk asynchronously with timeout
-                ChunkAccess chunk = loadChunkAsync(level, chunkPos);
-                if (chunk == null) {
-                    continue; // Chunk load failed or timed out
+        // Progress feedback every 10 attempts
+        if (attempt % 10 == 0) {
+            final int currentAttempt = attempt;
+            scheduleMainThread(player.getServer(), () -> {
+                if (player.isAlive() && !player.hasDisconnected()) {
+                    player.sendSystemMessage(Component.literal(
+                            "§7Searching... (attempt " + currentAttempt + "/" + MAX_ATTEMPTS + ")"));
                 }
+            });
+        }
 
-                // Safety check using ChunkAccess (thread-safe reads!)
-                BlockPos candidate = findSafeYFromChunk(level, chunk, x, z);
-                if (candidate != null && isSafeSpotFromChunk(level, chunk, candidate)) {
-                    safePos = candidate;
-                    break;
-                }
+        // Generate random coordinates
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        double angle = random.nextDouble() * 2 * Math.PI;
+        int minDist = getMinDistance();
+        int maxDist = getMaxDistance();
+        int dist = minDist + random.nextInt(Math.max(1, maxDist - minDist));
+        int x = center.getX() + (int) (Math.cos(angle) * dist);
+        int z = center.getZ() + (int) (Math.sin(angle) * dist);
+
+        ChunkPos chunkPos = new ChunkPos(x >> 4, z >> 4);
+
+        // Load chunk asynchronously and chain operations
+        return loadChunkAsync(level, chunkPos).thenCompose(chunk -> {
+            if (chunk == null) {
+                // Chunk load failed, try next attempt
+                return processRtpRequestRecursive(request, attempt + 1);
             }
 
-            // If no safe location found after all attempts, notify player
-            if (safePos == null) {
-                scheduleMainThread(player.getServer(), () -> {
-                    if (player.isAlive() && !player.hasDisconnected()) {
-                        player.sendSystemMessage(Component.literal(
-                                "§cCould not find a safe location after " + MAX_ATTEMPTS + " attempts!"));
-                    }
-                });
-                return;
+            // Safety check using ChunkAccess (thread-safe reads!)
+            BlockPos candidate = findSafeYFromChunk(level, chunk, x, z);
+            if (candidate == null || !isSafeSpotFromChunk(level, chunk, candidate)) {
+                // Not safe, try next attempt
+                return processRtpRequestRecursive(request, attempt + 1);
             }
 
-            // Final teleport - must run on main thread
-            final BlockPos finalPos = safePos;
-            final int attempts = attemptCounter.get();
+            // Found safe spot, attempt teleport
+            final BlockPos finalPos = candidate;
+            final int attempts = attempt;
 
             CompletableFuture<Boolean> teleportFuture = new CompletableFuture<>();
-
             scheduleMainThread(player.getServer(), () -> {
                 try {
                     if (!player.isAlive() || player.hasDisconnected()) {
                         teleportFuture.complete(false);
                         return;
                     }
-
                     boolean success = performTeleport(player, level, finalPos, attempts);
                     teleportFuture.complete(success);
                 } catch (Exception e) {
@@ -242,141 +253,136 @@ public class AsyncRtpManager {
                 }
             });
 
-            // Wait for teleport to complete and check result
-            try {
-                teleportSuccess = teleportFuture.get(10, TimeUnit.SECONDS);
-            } catch (TimeoutException e) {
-                teleportSuccess = false;
-            }
-
-            // If teleport failed (location became unsafe), continue searching
-            if (!teleportSuccess) {
-                VonixCore.LOGGER.info("[RTP] Initial attempt failed, continuing search for {}", player.getName().getString());
-                // Continue searching with more attempts - don't remove from pending yet
-                boolean continuedSuccess = continueSearching(player, level, center, attempts);
-                if (!continuedSuccess) {
+            return teleportFuture.thenCompose(success -> {
+                if (success) {
+                    // Teleport successful
                     pendingPlayers.remove(playerUuid);
+                    return CompletableFuture.completedFuture(null);
                 }
-                return;
-            }
 
-        } catch (Exception e) {
-            VonixCore.LOGGER.error("[RTP] Error processing RTP for {}: {}", player.getName().getString(),
-                    e.getMessage());
+                // Teleport failed, continue searching
+                VonixCore.LOGGER.info("[RTP] Initial attempt failed, continuing search for {}", 
+                        player.getName().getString());
+                return continueSearchingAsync(player, level, center, attempts)
+                        .thenAccept(continuedSuccess -> {
+                            if (!continuedSuccess) {
+                                pendingPlayers.remove(playerUuid);
+                            }
+                        });
+            });
+        }).exceptionally(ex -> {
+            VonixCore.LOGGER.error("[RTP] Error processing RTP for {}: {}", 
+                    player.getName().getString(), ex.getMessage());
             scheduleMainThread(player.getServer(), () -> {
                 if (player.isAlive() && !player.hasDisconnected()) {
                     player.sendSystemMessage(Component.literal("§cAn error occurred during RTP."));
                 }
             });
-        } finally {
-            // Only remove if we didn't continue searching
-            if (teleportSuccess) {
-                pendingPlayers.remove(playerUuid);
-            }
-        }
+            pendingPlayers.remove(playerUuid);
+            return null;
+        });
     }
 
     /**
      * Continues searching for a safe location after initial failure.
-     * Returns true if successful, false if all attempts exhausted.
+     * Returns CompletableFuture<Boolean> for async processing.
+     * This non-blocking approach prevents ServerHangWatchdog crashes.
      */
-    private static boolean continueSearching(ServerPlayer player, ServerLevel level, BlockPos center, int attemptsSoFar) {
-        UUID playerUuid = player.getUUID();
-        int totalAttempts = attemptsSoFar;
-        int additionalAttempts = 25; // Try 25 more times
-
-        try {
-            for (int i = 0; i < additionalAttempts; i++) {
-                totalAttempts++;
-
-                // Progress feedback every 10 attempts
-                if (totalAttempts % 10 == 0) {
-                    final int currentAttempt = totalAttempts;
-                    scheduleMainThread(player.getServer(), () -> {
-                        if (player.isAlive() && !player.hasDisconnected()) {
-                            player.sendSystemMessage(Component.literal(
-                                    "§7Still searching... (attempt " + currentAttempt + ")"));
-                        }
-                    });
-                }
-
-                // Generate random coordinates
-                ThreadLocalRandom random = ThreadLocalRandom.current();
-                double angle = random.nextDouble() * 2 * Math.PI;
-                int minDist = getMinDistance();
-                int maxDist = getMaxDistance();
-                int dist = minDist + random.nextInt(Math.max(1, maxDist - minDist));
-                int x = center.getX() + (int) (Math.cos(angle) * dist);
-                int z = center.getZ() + (int) (Math.sin(angle) * dist);
-
-                ChunkPos chunkPos = new ChunkPos(x >> 4, z >> 4);
-
-                // Load chunk asynchronously with timeout
-                ChunkAccess chunk = loadChunkAsync(level, chunkPos);
-                if (chunk == null) {
-                    continue;
-                }
-
-                // Safety check using ChunkAccess
-                BlockPos candidate = findSafeYFromChunk(level, chunk, x, z);
-                if (candidate != null && isSafeSpotFromChunk(level, chunk, candidate)) {
-                    final BlockPos finalPos = candidate;
-                    final int attemptNumber = totalAttempts;
-                    
-                    // Try to teleport
-                    CompletableFuture<Boolean> teleportFuture = new CompletableFuture<>();
-                    scheduleMainThread(player.getServer(), () -> {
-                        try {
-                            if (!player.isAlive() || player.hasDisconnected()) {
-                                teleportFuture.complete(false);
-                                return;
-                            }
-                            boolean success = performTeleport(player, level, finalPos, attemptNumber);
-                            teleportFuture.complete(success);
-                        } catch (Exception e) {
-                            teleportFuture.complete(false);
-                        }
-                    });
-
-                    boolean success = false;
-                    try {
-                        success = teleportFuture.get(10, TimeUnit.SECONDS);
-                    } catch (TimeoutException e) {
-                        success = false;
-                    }
-
-                    if (success) {
-                        pendingPlayers.remove(playerUuid);
-                        return true;
-                    }
-                    // If failed, continue to next attempt
-                }
-            }
-
+    private static CompletableFuture<Boolean> continueSearchingAsync(ServerPlayer player, ServerLevel level, BlockPos center, int attemptsSoFar) {
+        return continueSearchingRecursive(player, level, center, attemptsSoFar, 25);
+    }
+    
+    /**
+     * Recursive async search to avoid blocking.
+     */
+    private static CompletableFuture<Boolean> continueSearchingRecursive(ServerPlayer player, ServerLevel level, 
+            BlockPos center, int attemptsSoFar, int remainingAttempts) {
+        
+        if (remainingAttempts <= 0) {
             // Exhausted all attempts
-            final int finalTotalAttempts = totalAttempts;
             scheduleMainThread(player.getServer(), () -> {
                 if (player.isAlive() && !player.hasDisconnected()) {
                     player.sendSystemMessage(Component.literal(
-                            "§cCould not find a safe location after " + finalTotalAttempts + " attempts!"));
+                            "§cCould not find a safe location after " + attemptsSoFar + " attempts!"));
                 }
             });
-            return false;
-
-        } catch (Exception e) {
-            VonixCore.LOGGER.error("[RTP] Error during continued search for {}: {}", player.getName().getString(), e.getMessage());
-            return false;
-        } finally {
-            pendingPlayers.remove(playerUuid);
+            return CompletableFuture.completedFuture(false);
         }
+        
+        int totalAttempts = attemptsSoFar + 1;
+        UUID playerUuid = player.getUUID();
+
+        // Progress feedback every 10 attempts
+        if (totalAttempts % 10 == 0) {
+            final int currentAttempt = totalAttempts;
+            scheduleMainThread(player.getServer(), () -> {
+                if (player.isAlive() && !player.hasDisconnected()) {
+                    player.sendSystemMessage(Component.literal(
+                            "§7Still searching... (attempt " + currentAttempt + ")"));
+                }
+            });
+        }
+
+        // Generate random coordinates
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        double angle = random.nextDouble() * 2 * Math.PI;
+        int minDist = getMinDistance();
+        int maxDist = getMaxDistance();
+        int dist = minDist + random.nextInt(Math.max(1, maxDist - minDist));
+        int x = center.getX() + (int) (Math.cos(angle) * dist);
+        int z = center.getZ() + (int) (Math.sin(angle) * dist);
+
+        ChunkPos chunkPos = new ChunkPos(x >> 4, z >> 4);
+
+        // Load chunk asynchronously and chain operations
+        return loadChunkAsync(level, chunkPos).thenCompose(chunk -> {
+            if (chunk == null) {
+                // Chunk load failed, try next attempt
+                return continueSearchingRecursive(player, level, center, totalAttempts, remainingAttempts - 1);
+            }
+
+            // Safety check using ChunkAccess
+            BlockPos candidate = findSafeYFromChunk(level, chunk, x, z);
+            if (candidate == null || !isSafeSpotFromChunk(level, chunk, candidate)) {
+                // Not safe, try next attempt
+                return continueSearchingRecursive(player, level, center, totalAttempts, remainingAttempts - 1);
+            }
+
+            // Found safe spot, attempt teleport
+            final BlockPos finalPos = candidate;
+            final int attemptNumber = totalAttempts;
+            
+            CompletableFuture<Boolean> teleportFuture = new CompletableFuture<>();
+            scheduleMainThread(player.getServer(), () -> {
+                try {
+                    if (!player.isAlive() || player.hasDisconnected()) {
+                        teleportFuture.complete(false);
+                        return;
+                    }
+                    boolean success = performTeleport(player, level, finalPos, attemptNumber);
+                    teleportFuture.complete(success);
+                } catch (Exception e) {
+                    teleportFuture.complete(false);
+                }
+            });
+
+            return teleportFuture.thenCompose(success -> {
+                if (success) {
+                    pendingPlayers.remove(playerUuid);
+                    return CompletableFuture.completedFuture(true);
+                }
+                // Teleport failed, try next attempt
+                return continueSearchingRecursive(player, level, center, totalAttempts, remainingAttempts - 1);
+            });
+        });
     }
 
     /**
-     * Load a chunk asynchronously and wait for result.
-     * Returns null on timeout or failure.
-     * Uses non-blocking approach to avoid server deadlock.
+     * Load a chunk asynchronously - TRULY NON-BLOCKING.
+     * Returns CompletableFuture<ChunkAccess> to avoid blocking any thread.
+     * This prevents ServerHangWatchdog crashes.
      */
-    private static ChunkAccess loadChunkAsync(ServerLevel level, ChunkPos pos) {
+    private static CompletableFuture<ChunkAccess> loadChunkAsync(ServerLevel level, ChunkPos pos) {
         CompletableFuture<ChunkAccess> future = new CompletableFuture<>();
 
         // Schedule ticket + chunk request on main thread
@@ -415,15 +421,12 @@ public class AsyncRtpManager {
                             return null;
                         });
             } catch (Exception e) {
+                VonixCore.LOGGER.error("[RTP] Error loading chunk {}: {}", pos, e.getMessage());
                 future.complete(null);
             }
         });
 
-        try {
-            return future.get(CHUNK_LOAD_TIMEOUT_MS + 1000, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            return null;
-        }
+        return future;
     }
 
     /**

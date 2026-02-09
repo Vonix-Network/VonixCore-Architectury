@@ -20,6 +20,7 @@ public class EssentialsConfig {
         public final SimpleConfigValue<Integer> rtpCooldown;
         public final SimpleConfigValue<Integer> rtpMaxRange;
         public final SimpleConfigValue<Integer> rtpMinRange;
+        public final SimpleConfigValue<Boolean> rtpAsyncChunkLoading;
         public final SimpleConfigValue<Integer> maxHomes;
         public final SimpleConfigValue<Integer> homeCooldown;
         public final SimpleConfigValue<Integer> teleportDelay;
@@ -65,6 +66,7 @@ public class EssentialsConfig {
                 rtpCooldown = builder.defineInRange("cooldown", 600, 0, 86400);
                 rtpMaxRange = builder.defineInRange("max_range", 10000, 100, 100000);
                 rtpMinRange = builder.defineInRange("min_range", 500, 0, 50000);
+                rtpAsyncChunkLoading = builder.define("async_chunk_loading", true);
                 builder.pop();
         }
 }
