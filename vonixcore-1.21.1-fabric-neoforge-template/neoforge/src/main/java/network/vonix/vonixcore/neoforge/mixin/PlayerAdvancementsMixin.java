@@ -1,0 +1,82 @@
+package network.vonix.vonixcore.neoforge.mixin;
+
+import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.DisplayInfo;
+import net.minecraft.server.PlayerAdvancements;
+import net.minecraft.server.level.ServerPlayer;
+import network.vonix.vonixcore.VonixCore;
+import network.vonix.vonixcore.config.DiscordConfig;
+import network.vonix.vonixcore.discord.DiscordManager;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.Optional;
+
+/**
+ * Mixin to intercept advancement awards and send them to Discord.
+ * 1.21.1 API uses AdvancementHolder instead of Advancement.
+ */
+@Mixin(PlayerAdvancements.class)
+public abstract class PlayerAdvancementsMixin {
+
+    @Shadow
+    private ServerPlayer player;
+
+    /**
+     * Intercept advancement award to send to Discord.
+     * Targets the award method which is called when a player earns an advancement.
+     */
+    @Inject(method = "award", at = @At("RETURN"))
+    private void vonixcore$onAdvancementAward(AdvancementHolder advancementHolder, String criterionName,
+            CallbackInfoReturnable<Boolean> cir) {
+        // Only process if the advancement was actually awarded (returned true)
+        if (!cir.getReturnValue()) {
+            return;
+        }
+
+        VonixCore.LOGGER.debug("[Discord] Advancement awarded: {}", advancementHolder.id());
+
+        // Check if Discord integration is running
+        if (!DiscordManager.getInstance().isRunning()) {
+            VonixCore.LOGGER.debug("[Discord] Not sending advancement - Discord not running");
+            return;
+        }
+
+        // Check if advancement notifications are enabled
+        if (!DiscordConfig.CONFIG.sendAdvancement.get()) {
+            VonixCore.LOGGER.debug("[Discord] Not sending advancement - disabled in config");
+            return;
+        }
+
+        // Get advancement display info (1.21.1 uses Optional)
+        Optional<DisplayInfo> displayOpt = advancementHolder.value().display();
+        if (displayOpt.isEmpty()) {
+            return; // Hidden advancement (no display)
+        }
+
+        DisplayInfo display = displayOpt.get();
+
+        // Only send if advancement should announce to chat
+        if (!display.shouldAnnounceChat()) {
+            return;
+        }
+
+        try {
+            String username = player.getName().getString();
+            String advancementTitle = display.getTitle().getString();
+            String advancementDescription = display.getDescription().getString();
+
+            VonixCore.LOGGER.info("[Discord] Sending advancement to Discord: {} - {}", username, advancementTitle);
+
+            DiscordManager.getInstance().sendAdvancementEmbed(
+                    username,
+                    advancementTitle,
+                    advancementDescription);
+        } catch (Exception e) {
+            VonixCore.LOGGER.error("[Discord] Failed to send advancement", e);
+        }
+    }
+}

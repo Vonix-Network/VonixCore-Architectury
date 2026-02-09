@@ -7,7 +7,7 @@ import dev.architectury.event.events.common.CommandRegistrationEvent;
 import dev.architectury.event.events.common.InteractionEvent;
 import dev.architectury.event.events.common.PlayerEvent;
 import dev.architectury.event.events.common.TickEvent;
-import dev.architectury.event.events.common.ChatEvent;
+import net.minecraft.network.chat.TextComponent;
 // import dev.architectury.event.events.common.CommandEvent;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
@@ -125,24 +125,8 @@ public class AuthEventHandler {
         });
 
         // Chat - Block chat for frozen/unauthenticated players
-        ChatEvent.RECEIVED.register((player, component) -> {
-            if (player instanceof ServerPlayer) {
-                ServerPlayer serverPlayer = (ServerPlayer) player;
-                UUID uuid = serverPlayer.getUUID();
-                if (isFrozen(uuid)) {
-                    // Rate limit reminder messages (every 5 seconds)
-                    long now = System.currentTimeMillis();
-                    Long last = lastChatReminder.get(uuid);
-                    if (last == null || (now - last) >= 5000) {
-                        serverPlayer.sendSystemMessage(Component.literal(
-                            "§cYou must authenticate! Use §e/login <password>§c or §e/register <password>"));
-                        lastChatReminder.put(uuid, now);
-                    }
-                    return EventResult.interruptFalse();
-                }
-            }
-            return EventResult.pass();
-        });
+        // Note: ChatEvent.RECEIVED is not available in 1.18.2 Architectury API
+        // This is handled via mixin in the platform-specific modules
         
         // Command blocking temporarily disabled - requires platform specific implementation or Mixin
         /*
