@@ -82,7 +82,7 @@ public class DiscordManager {
             VonixCore.LOGGER.info("[Discord] Disabled in config.");
             return;
         }
-        
+
         // Prevent double initialization
         if (this.running) {
             VonixCore.LOGGER.warn("[Discord] Already initialized, skipping duplicate init.");
@@ -155,7 +155,7 @@ public class DiscordManager {
                 VonixCore.LOGGER.error("[Discord] Error disconnecting bot client: {}", e.getMessage());
             }
         }
-        
+
         // Shutdown webhook client with error handling
         if (webhookClient != null) {
             try {
@@ -652,19 +652,19 @@ public class DiscordManager {
             VonixCore.LOGGER.debug("[Discord] Cannot send event embed - Discord not running");
             return CompletableFuture.completedFuture(null);
         }
-        
+
         if (eventChannelId == null || eventChannelId.isEmpty()) {
             VonixCore.LOGGER.warn("[Discord] Cannot send event embed - event channel ID not set");
             return CompletableFuture.completedFuture(null);
         }
-        
+
         JsonObject embed = new JsonObject();
         embedBuilder.accept(embed);
-        
+
         if (DiscordConfig.CONFIG.debugLogging.get()) {
             VonixCore.LOGGER.debug("[Discord] Sending event embed to channel: {}", eventChannelId);
         }
-        
+
         return botClient.sendEmbed(eventChannelId, embed).whenComplete((msg, error) -> {
             if (error != null) {
                 VonixCore.LOGGER.error("[Discord] Failed to send event embed to channel {}", eventChannelId, error);
@@ -706,14 +706,13 @@ public class DiscordManager {
                 username,
                 DiscordConfig.CONFIG.serverName.get(),
                 "Join",
-                getAvatarUrl(username)
-        )).whenComplete((msg, error) -> {
-            if (error != null) {
-                VonixCore.LOGGER.error("[Discord] Failed to send join embed for {}", username, error);
-            } else if (DiscordConfig.CONFIG.debugLogging.get()) {
-                VonixCore.LOGGER.debug("[Discord] Sent join embed for {}", username);
-            }
-        });
+                getAvatarUrl(username))).whenComplete((msg, error) -> {
+                    if (error != null) {
+                        VonixCore.LOGGER.error("[Discord] Failed to send join embed for {}", username, error);
+                    } else if (DiscordConfig.CONFIG.debugLogging.get()) {
+                        VonixCore.LOGGER.debug("[Discord] Sent join embed for {}", username);
+                    }
+                });
     }
 
     public void sendLeaveEmbed(String username, String uuid) {
@@ -732,14 +731,13 @@ public class DiscordManager {
                 username,
                 DiscordConfig.CONFIG.serverName.get(),
                 "Leave",
-                getAvatarUrl(username)
-        )).whenComplete((msg, error) -> {
-            if (error != null) {
-                VonixCore.LOGGER.error("[Discord] Failed to send leave embed for {}", username, error);
-            } else if (DiscordConfig.CONFIG.debugLogging.get()) {
-                VonixCore.LOGGER.debug("[Discord] Sent leave embed for {}", username);
-            }
-        });
+                getAvatarUrl(username))).whenComplete((msg, error) -> {
+                    if (error != null) {
+                        VonixCore.LOGGER.error("[Discord] Failed to send leave embed for {}", username, error);
+                    } else if (DiscordConfig.CONFIG.debugLogging.get()) {
+                        VonixCore.LOGGER.debug("[Discord] Sent leave embed for {}", username);
+                    }
+                });
     }
 
     // Deprecated single-arg methods for compatibility if needed
@@ -818,17 +816,17 @@ public class DiscordManager {
         if (botClient == null || server == null || !DiscordConfig.CONFIG.setBotStatus.get()) {
             return;
         }
-        
+
         int online = server.getPlayerList().getPlayerCount();
         int max = server.getPlayerList().getMaxPlayers();
         String format = DiscordConfig.CONFIG.botStatusFormat.get();
         String status = format.replace("{online}", String.valueOf(online))
-                              .replace("{max}", String.valueOf(max));
-        
+                .replace("{max}", String.valueOf(max));
+
         // Update status asynchronously to avoid blocking main thread
         VonixCore.ASYNC_EXECUTOR.submit(() -> botClient.updateStatus(status));
     }
-    
+
     /**
      * Schedules a status update after a delay (used for player join/leave events).
      * Non-blocking and thread-safe.
@@ -837,7 +835,7 @@ public class DiscordManager {
         if (botClient == null || server == null || !DiscordConfig.CONFIG.setBotStatus.get()) {
             return;
         }
-        
+
         VonixCore.ASYNC_EXECUTOR.submit(() -> {
             try {
                 Thread.sleep(delayMs);
@@ -928,19 +926,10 @@ public class DiscordManager {
             if (server == null) {
                 return;
             }
-            int online = server.getPlayerList().getPlayerCount();
-            int max = server.getPlayerList().getMaxPlayers();
-            String message = "There are " + online + "/" + max + " players online.";
 
-            // Send to Discord via Webhook (Text) for compatibility
-            sendSystemMessage(message);
-
-            // Broadcast locally
-            String serverName = DiscordConfig.CONFIG.serverName.get();
-            MutableComponent component = new TextComponent("[Discord] " + serverName + ": " + message)
-                    .withStyle(ChatFormatting.AQUA);
-            server.execute(() -> server.getPlayerList().broadcastMessage(component,
-                    net.minecraft.network.chat.ChatType.SYSTEM, net.minecraft.Util.NIL_UUID));
+            // Build and send the rich embed
+            org.javacord.api.entity.message.embed.EmbedBuilder embed = buildPlayerListEmbed();
+            event.getChannel().sendMessage(embed);
 
         } catch (Exception e) {
             VonixCore.LOGGER.error("[Discord] Error handling !list command", e);
@@ -968,40 +957,61 @@ public class DiscordManager {
         try {
             // Extract Server Name logic
             String serverName = "Unknown Server";
-            if (embed.getAuthor().isPresent()) {
+            if (embed.getTitle().isPresent()) {
+                // Title is like "📋 ServerName"
+                serverName = embed.getTitle().get().replaceAll("^📋\\s*", "").trim();
+            } else if (embed.getAuthor().isPresent()) {
                 serverName = embed.getAuthor().get().getName();
-            } else if (embed.getTitle().isPresent()) {
-                serverName = embed.getTitle().get();
             }
 
-            // Extract content logic
-            String description = embed.getDescription().orElse("");
             String message;
+            String description = embed.getDescription().orElse("");
 
-            if (description.contains("No players are currently online")) {
+            // Check if no players online (message is in description)
+            if (description.contains("No players") || description.contains("no players")) {
                 message = "0 Players: No players online";
             } else {
-                String[] lines = description.split("\n");
-                String countStr = "";
+                // Players are in embed fields, not description
+                // Field format: name="Players X/Y", value="• Player1\n• Player2"
                 List<String> players = new ArrayList<>();
+                String countInfo = "";
 
-                for (String line : lines) {
-                    if (line.trim().startsWith("Players")) {
-                        countStr = line.trim().replace("Players", "").trim();
-                    } else if (line.trim().startsWith("-")) {
-                        players.add(line.trim().substring(1).trim());
+                for (org.javacord.api.entity.message.embed.EmbedField field : embed.getFields()) {
+                    String fieldName = field.getName();
+                    String fieldValue = field.getValue();
+
+                    // Check for player list field (e.g., "Players 3/20")
+                    if (fieldName != null && fieldName.startsWith("Players")) {
+                        // Extract count from field name
+                        countInfo = fieldName.replace("Players", "").trim();
+
+                        // Parse player names from field value (bullet list)
+                        if (fieldValue != null && !fieldValue.isEmpty()) {
+                            String[] lines = fieldValue.split("\n");
+                            for (String line : lines) {
+                                String cleaned = line.trim()
+                                        .replaceAll("^[•\\-*]\\s*", "") // Remove bullet points
+                                        .trim();
+                                if (!cleaned.isEmpty()) {
+                                    players.add(cleaned);
+                                }
+                            }
+                        }
                     }
                 }
 
-                if (!countStr.isEmpty()) {
+                if (!players.isEmpty()) {
                     String playerList = String.join(", ", players);
-                    message = countStr + ": " + playerList;
+                    message = countInfo + " Players: " + playerList;
+                } else if (!countInfo.isEmpty()) {
+                    message = countInfo + " Players: No players online";
                 } else {
-                    message = "Online: " + description;
+                    // Ultimate fallback - just show description
+                    message = description.isEmpty() ? "Player list unavailable" : description;
                 }
             }
 
-            String formatted = "§a[" + serverName + "] §f" + message;
+            String formatted = "§a[📋 " + serverName + "] §f" + message;
 
             if (server != null) {
                 server.execute(() -> server.getPlayerList().broadcastMessage(

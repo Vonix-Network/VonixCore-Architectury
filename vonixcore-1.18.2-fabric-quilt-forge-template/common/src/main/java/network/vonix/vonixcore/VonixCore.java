@@ -32,7 +32,7 @@ public class VonixCore {
 
     public static final String MODID = "vonixcore";
     public static final String MOD_NAME = "VonixCore";
-    public static final String VERSION = "1.3.2";
+    public static final String VERSION = "1.4.0";
 
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_NAME);
 
@@ -55,8 +55,7 @@ public class VonixCore {
                 t.setDaemon(true);
                 return t;
             },
-            new ThreadPoolExecutor.CallerRunsPolicy()
-    );
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
     public static void init() {
         instance = new VonixCore();
@@ -96,17 +95,13 @@ public class VonixCore {
         LifecycleEvent.SERVER_STARTING.register(this::onServerStarting);
         LifecycleEvent.SERVER_STARTED.register(this::onServerStarted);
         LifecycleEvent.SERVER_STOPPING.register(this::onServerStopping);
-        
+
         // Register Discord events
         network.vonix.vonixcore.discord.DiscordEventHandler.register();
-        
+
         // Register Essentials events
         network.vonix.vonixcore.listener.EssentialsEventHandler.init();
-        
-        // Register Auth events and initialize freeze cache
-        network.vonix.vonixcore.auth.events.AuthEventHandler.init();
-        network.vonix.vonixcore.auth.AuthenticationManager.updateFreezeCache();
-        
+
         // Register Auth events and initialize freeze cache
         network.vonix.vonixcore.auth.events.AuthEventHandler.init();
         network.vonix.vonixcore.auth.AuthenticationManager.updateFreezeCache();
@@ -121,14 +116,15 @@ public class VonixCore {
         try {
             database = new Database(server);
             // Use async initialization with timeout to prevent server startup hangs
-            java.util.concurrent.CompletableFuture<Void> dbInitFuture = java.util.concurrent.CompletableFuture.runAsync(() -> {
-                try {
-                    database.initialize();
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }, ASYNC_EXECUTOR);
-            
+            java.util.concurrent.CompletableFuture<Void> dbInitFuture = java.util.concurrent.CompletableFuture
+                    .runAsync(() -> {
+                        try {
+                            database.initialize();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }, ASYNC_EXECUTOR);
+
             // Wait for database initialization with timeout
             dbInitFuture.get(15, TimeUnit.SECONDS);
             LOGGER.info("[{}] Database initialized", MOD_NAME);
@@ -167,7 +163,7 @@ public class VonixCore {
                     KitManager.getInstance().loadDefaultKits();
                 }
                 AdminManager.getInstance().initializeTable(conn);
-                
+
                 PermissionManager.getInstance().initialize(conn);
                 LOGGER.info("[{}] Permission system initialized", MOD_NAME);
 
@@ -214,10 +210,11 @@ public class VonixCore {
         if (DiscordConfig.CONFIG.enabled.get()) {
             try {
                 // Initialize with timeout protection to prevent hanging server startup
-                java.util.concurrent.CompletableFuture<Void> discordInitFuture = java.util.concurrent.CompletableFuture.runAsync(() -> {
-                    DiscordManager.getInstance().initialize(server);
-                }, ASYNC_EXECUTOR);
-                
+                java.util.concurrent.CompletableFuture<Void> discordInitFuture = java.util.concurrent.CompletableFuture
+                        .runAsync(() -> {
+                            DiscordManager.getInstance().initialize(server);
+                        }, ASYNC_EXECUTOR);
+
                 // Wait max 10 seconds for Discord initialization
                 discordInitFuture.get(10, TimeUnit.SECONDS);
                 discordEnabled = true;

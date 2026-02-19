@@ -5,7 +5,10 @@
     "refmap": "vonixcore-forge-refmap.json",
     "mixins": [
         "ServerGamePacketListenerMixin",
-        "PlayerAdvancementsMixin"
+        "PlayerAdvancementsMixin",
+        "AuthCommandBlockerMixin",
+        "AuthItemPickupMixin",
+        "AuthEntityInteractionMixin"
     ],
     "minVersion": "0.8"
 }

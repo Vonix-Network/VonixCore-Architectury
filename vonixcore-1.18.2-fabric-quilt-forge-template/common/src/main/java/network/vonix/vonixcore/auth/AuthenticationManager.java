@@ -40,7 +40,8 @@ public class AuthenticationManager {
     }
 
     public static void updateFreezeCache() {
-        freezeEnabled = AuthConfig.CONFIG.REQUIRE_AUTHENTICATION.get() && AuthConfig.CONFIG.FREEZE_UNAUTHENTICATED.get();
+        freezeEnabled = AuthConfig.CONFIG.REQUIRE_AUTHENTICATION.get()
+                && AuthConfig.CONFIG.FREEZE_UNAUTHENTICATED.get();
     }
 
     public static void onPlayerJoin(ServerPlayer player) {
@@ -54,7 +55,8 @@ public class AuthenticationManager {
             VonixNetworkAPI.checkPlayerRegistration(username, uuid.toString())
                     .thenAccept(response -> {
                         if (response.registered) {
-                            player.sendMessage(new TextComponent(AuthConfig.CONFIG.LOGIN_REQUIRED_MESSAGE.get()), Util.NIL_UUID);
+                            player.sendMessage(new TextComponent(AuthConfig.CONFIG.LOGIN_REQUIRED_MESSAGE.get()),
+                                    Util.NIL_UUID);
                         } else {
                             runAutoRegister(player, username, uuid);
                         }
@@ -98,7 +100,8 @@ public class AuthenticationManager {
                         player.sendMessage(link, Util.NIL_UUID);
                         player.sendMessage(new TextComponent("§7Or use: §e/register <password>"), Util.NIL_UUID);
                     } else if (response.already_registered) {
-                        player.sendMessage(new TextComponent("§aAlready registered! Use §e/login <password>"), Util.NIL_UUID);
+                        player.sendMessage(new TextComponent("§aAlready registered! Use §e/login <password>"),
+                                Util.NIL_UUID);
                         playerStates.put(uuid, PlayerAuthState.UNAUTHENTICATED);
                     } else {
                         player.sendMessage(new TextComponent("§cRegistration failed. Try §e/register"), Util.NIL_UUID);
@@ -145,10 +148,20 @@ public class AuthenticationManager {
     }
 
     public static void shutdown() {
-        scheduler.shutdown();
         try {
-            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+            // Cancel all pending timeout tasks first
+            timeoutTasks.values().forEach(t -> t.cancel(false));
+            timeoutTasks.clear();
+
+            scheduler.shutdown();
+            // Use shorter timeout to prevent blocking server shutdown
+            if (!scheduler.awaitTermination(3, TimeUnit.SECONDS)) {
+                VonixCore.LOGGER.warn("[Auth] Scheduler did not terminate in time, forcing shutdown...");
                 scheduler.shutdownNow();
+                // Brief wait for forced shutdown
+                if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) {
+                    VonixCore.LOGGER.error("[Auth] Scheduler could not be terminated!");
+                }
             }
         } catch (InterruptedException e) {
             scheduler.shutdownNow();

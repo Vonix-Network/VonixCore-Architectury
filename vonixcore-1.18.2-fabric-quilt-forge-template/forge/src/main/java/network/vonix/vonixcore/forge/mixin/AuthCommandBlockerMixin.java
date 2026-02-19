@@ -1,6 +1,5 @@
-package network.vonix.vonixcore.fabric.mixin;
+package network.vonix.vonixcore.forge.mixin;
 
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.network.protocol.game.ServerboundChatPacket;
 import net.minecraft.server.level.ServerPlayer;
@@ -13,8 +12,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Mixin to block commands for unauthenticated/frozen players.
+ * Forge mixin to block commands for unauthenticated/frozen players.
  * Only allows /login and /register commands.
+ * In 1.18.2, commands come through the chat packet starting with "/"
  */
 @Mixin(ServerGamePacketListenerImpl.class)
 public class AuthCommandBlockerMixin {
@@ -24,26 +24,26 @@ public class AuthCommandBlockerMixin {
 
     /**
      * Block command execution for frozen players.
-     * In 1.18.2, commands come through the chat packet starting with "/"
      */
     @Inject(method = "handleChat", at = @At("HEAD"), cancellable = true)
     private void vonixcore$onHandleChatCommand(ServerboundChatPacket packet, CallbackInfo ci) {
         String message = packet.getMessage();
-        
+
         // Only process if it's a command and player is frozen
         if (message.startsWith("/") && AuthenticationManager.shouldFreeze(player.getUUID())) {
             String command = message.toLowerCase().trim();
-            
+
             // Allow only /login and /register commands
             if (command.startsWith("/login ") || command.startsWith("/login") ||
-                command.startsWith("/register ") || command.startsWith("/register") ||
-                command.startsWith("/log ") || command.startsWith("/reg ")) {
+                    command.startsWith("/register ") || command.startsWith("/register") ||
+                    command.startsWith("/log ") || command.startsWith("/reg ")) {
                 return; // Allow these commands
             }
-            
+
             // Block all other commands
             player.sendMessage(new TextComponent(
-                "§cYou must authenticate first! Use §e/login <password>§c or §e/register <password>"), player.getUUID());
+                    "§cYou must authenticate first! Use §e/login <password>§c or §e/register <password>"),
+                    player.getUUID());
             ci.cancel();
         }
     }

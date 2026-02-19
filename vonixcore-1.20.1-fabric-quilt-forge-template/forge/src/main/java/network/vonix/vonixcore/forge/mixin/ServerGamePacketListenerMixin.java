@@ -33,10 +33,10 @@ public abstract class ServerGamePacketListenerMixin {
     @Inject(method = "broadcastChatMessage", at = @At("HEAD"), cancellable = true)
     private void vonixcore$onBroadcastChatMessage(net.minecraft.network.chat.PlayerChatMessage message,
             CallbackInfo ci) {
-        VonixCore.LOGGER.info("[VonixCore Debug] Mixin broadcastChatMessage triggered"); // DEBUG LOG
+
         try {
             String rawMessage = message.signedContent();
-            VonixCore.LOGGER.info("[VonixCore Debug] Raw message: " + rawMessage); // DEBUG LOG
+
 
             // ALWAYS send to Discord (if running), regardless of chat formatting setting
             sendToDiscordIfEnabled(rawMessage);
@@ -63,10 +63,7 @@ public abstract class ServerGamePacketListenerMixin {
      * Send chat message to Discord if enabled, independent of chat formatting.
      */
     private void sendToDiscordIfEnabled(String rawMessage) {
-        boolean isRunning = DiscordManager.getInstance().isRunning();
-        VonixCore.LOGGER.info("[VonixCore Debug] sendToDiscordIfEnabled invoked. isRunning: " + isRunning); // DEBUG LOG
-
-        if (!isRunning) {
+        if (!DiscordManager.getInstance().isRunning()) {
             return;
         }
 
@@ -81,13 +78,11 @@ public abstract class ServerGamePacketListenerMixin {
         }
 
         if (shouldSendToDiscord) {
-            VonixCore.LOGGER.info("[VonixCore Debug] Sending to DiscordManager: " + rawMessage); // DEBUG LOG
+
             String nickname = network.vonix.vonixcore.command.UtilityCommands.getNickname(player.getUUID());
             String displayName = nickname != null ? nickname : player.getName().getString();
             DiscordManager.getInstance()
                     .sendChatMessage(displayName, rawMessage, player.getStringUUID());
-        } else {
-            VonixCore.LOGGER.info("[VonixCore Debug] Filtered from Discord"); // DEBUG LOG
         }
     }
 }
