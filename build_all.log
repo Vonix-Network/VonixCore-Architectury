@@ -1,0 +1,139 @@
+ 
+[Sat 02/07/2026 21:40:13.73] [INFO] Cleaned existing Builds directory 
+[Sat 02/07/2026 21:40:13.75] [INFO] Created fresh Builds directory 
+[Sat 02/07/2026 21:40:13.82] [INFO] Building Common module... 
+Starting a Gradle Daemon, 2 busy and 2 incompatible and 2 stopped Daemons could not be reused, use --status for details
+Configuration on demand is an incubating feature.
+
+[Incubating] Problems report is available at: file:///C:/Users/Admin/Development/VonixCore-Architectury/vonixcore-1.18.2-fabric-quilt-forge-template/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+A problem occurred configuring root project 'vonixcore'.
+> Could not resolve all artifacts for configuration 'classpath'.
+   > Could not resolve net.fabricmc.unpick:unpick:3.0.0-beta.9.
+     Required by:
+         root project : > dev.architectury.loom:dev.architectury.loom.gradle.plugin:1.11-SNAPSHOT:20251103.171524-1 > dev.architectury:architectury-loom:1.11-SNAPSHOT:20251103.171524-1
+      > Dependency requires at least JVM runtime version 21. This build uses a Java 17 JVM.
+   > Could not resolve net.fabricmc.unpick:unpick-format-utils:3.0.0-beta.9.
+     Required by:
+         root project : > dev.architectury.loom:dev.architectury.loom.gradle.plugin:1.11-SNAPSHOT:20251103.171524-1 > dev.architectury:architectury-loom:1.11-SNAPSHOT:20251103.171524-1
+      > Dependency requires at least JVM runtime version 21. This build uses a Java 17 JVM.
+
+* Try:
+> Run this build using a Java 21 or newer JVM.
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 20s
+[Sat 02/07/2026 21:40:36.09] [ERROR] Common module build failed for 1.18.2 
+[Sat 02/07/2026 21:40:36.16] [ERROR] 1.18.2 build failed 
+[Sat 02/07/2026 21:40:36.27] [INFO] Building Common module... 
+Configuration on demand is an incubating feature.
+
+> Configure project :
+Architect Plugin: 3.4.162
+Architectury Loom: 1.11.458
+
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:jar UP-TO-DATE
+> Task :common:processIncludeJars UP-TO-DATE
+> Task :common:remapJar FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:remapJar'.
+> Error while evaluating property 'tinyRemapperServiceOptions' of task ':common:remapJar'.
+   > Failed to query the value of task ':common:remapJar' property 'tinyRemapperServiceOptions'.
+      > Cannot get MappingsProvider before it has been setup
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 10s
+5 actionable tasks: 1 executed, 4 up-to-date
+[Sat 02/07/2026 21:40:48.70] [ERROR] Common module build failed for 1.19.2 
+[Sat 02/07/2026 21:40:48.81] [ERROR] 1.19.2 build failed 
+[Sat 02/07/2026 21:40:48.89] [INFO] Building Common module... 
+Configuration on demand is an incubating feature.
+
+> Configure project :
+Architect Plugin: 3.4.162
+Architectury Loom: 1.11.458
+
+> Task :common:compileJava
+Note: C:\Users\Admin\Development\VonixCore-Architectury\vonixcore-1.20.1-fabric-quilt-forge-template\common\src\main\java\network\vonix\vonixcore\teleport\AsyncRtpManager.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:jar
+> Task :common:processIncludeJars UP-TO-DATE
+> Task :common:remapJar FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/Admin/Development/VonixCore-Architectury/vonixcore-1.20.1-fabric-quilt-forge-template/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:remapJar'.
+> Error while evaluating property 'tinyRemapperServiceOptions' of task ':common:remapJar'.
+   > Failed to query the value of task ':common:remapJar' property 'tinyRemapperServiceOptions'.
+      > Cannot get MappingsProvider before it has been setup
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 51s
+5 actionable tasks: 3 executed, 2 up-to-date
+[Sat 02/07/2026 21:41:41.78] [ERROR] Common module build failed for 1.20.1 
+[Sat 02/07/2026 21:41:41.83] [ERROR] 1.20.1 build failed 
+[Sat 02/07/2026 21:41:41.91] [INFO] Building Common module... 
+Configuration on demand is an incubating feature.
+
+> Configure project :
+Architect Plugin: 3.4.162
+Architectury Loom: 1.11.458
+
+> Task :common:compileJava
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:jar
+> Task :common:processIncludeJars UP-TO-DATE
+> Task :common:remapJar FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/Admin/Development/VonixCore-Architectury/vonixcore-1.21.1-fabric-neoforge-template/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:remapJar'.
+> Error while evaluating property 'tinyRemapperServiceOptions' of task ':common:remapJar'.
+   > Failed to query the value of task ':common:remapJar' property 'tinyRemapperServiceOptions'.
+      > Cannot get MappingsProvider before it has been setup
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 37s
+5 actionable tasks: 3 executed, 2 up-to-date
+[Sat 02/07/2026 21:42:20.43] [ERROR] Common module build failed for 1.21.1 
+[Sat 02/07/2026 21:42:20.49] [ERROR] 1.21.1 build failed 

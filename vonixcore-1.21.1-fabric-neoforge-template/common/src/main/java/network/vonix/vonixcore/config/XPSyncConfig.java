@@ -34,7 +34,7 @@ public class XPSyncConfig {
         builder.push("xpsync");
         enabled = builder.define("enabled", false);
         builder.pop().push("api");
-        apiEndpoint = builder.define("endpoint", "https://vonix.network/api/minecraft/sync/xp");
+        apiEndpoint = builder.define("endpoint", "https://vonix.network/api/ext/minecraft/sync/xp");
         apiKey = builder.define("api_key", "YOUR_API_KEY_HERE");
         serverName = builder.define("server_name", "Server-1");
         syncInterval = builder.defineInRange("sync_interval", 300, 60, 3600);

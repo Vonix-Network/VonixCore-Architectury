@@ -110,7 +110,8 @@ public class VonixNetworkAPI {
     public static CompletableFuture<LoginResponse> loginPlayer(String username, String uuid, String password) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(buildUrl("/minecraft/login")).openConnection();
+                HttpURLConnection conn = (HttpURLConnection) new URL(buildUrl("/ext/minecraft/minecraft/login"))
+                        .openConnection();
                 configureConnection(conn, "POST", true);
 
                 JsonObject body = new JsonObject();
@@ -145,7 +146,8 @@ public class VonixNetworkAPI {
     public static CompletableFuture<RegistrationResponse> generateRegistrationCode(String username, String uuid) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(buildUrl("/minecraft/register")).openConnection();
+                HttpURLConnection conn = (HttpURLConnection) new URL(buildUrl("/ext/minecraft/minecraft/register"))
+                        .openConnection();
                 configureConnection(conn, "POST", true);
 
                 JsonObject body = new JsonObject();
@@ -178,7 +180,8 @@ public class VonixNetworkAPI {
             String password) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(buildUrl("/minecraft/register-direct"))
+                HttpURLConnection conn = (HttpURLConnection) new URL(
+                        buildUrl("/ext/minecraft/minecraft/register-direct"))
                         .openConnection();
                 configureConnection(conn, "POST", true);
 
@@ -214,7 +217,7 @@ public class VonixNetworkAPI {
     public static CompletableFuture<RegistrationCheckResponse> checkPlayerRegistration(String username, String uuid) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                String url = buildUrl("/minecraft/verify") + "?uuid=" + uuid + "&username=" + username;
+                String url = buildUrl("/ext/minecraft/verify") + "?uuid=" + uuid + "&username=" + username;
                 HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
                 configureConnection(conn, "GET", false);
 

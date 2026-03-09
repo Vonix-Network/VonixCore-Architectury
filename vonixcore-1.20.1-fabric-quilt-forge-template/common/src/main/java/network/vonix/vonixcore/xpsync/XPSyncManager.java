@@ -598,7 +598,9 @@ public class XPSyncManager {
         try {
             JsonObject response = JsonParser.parseString(responseBody).getAsJsonObject();
             if (response.has("success") && response.get("success").getAsBoolean()) {
-                int synced = response.has("syncedCount") ? response.get("syncedCount").getAsInt() : 0;
+                int synced = 0;
+                if (response.has("syncedCount")) synced = response.get("syncedCount").getAsInt();
+                else if (response.has("synced")) synced = response.get("synced").getAsInt();
                 if (synced == expectedCount) {
                     VonixCore.LOGGER.info("[XPSync] Successfully synced {} players", synced);
                 } else if (synced > 0) {
