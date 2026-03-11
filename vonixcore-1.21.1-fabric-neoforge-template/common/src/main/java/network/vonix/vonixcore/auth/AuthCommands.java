@@ -20,11 +20,17 @@ import network.vonix.vonixcore.config.AuthConfig;
 public class AuthCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // /register [password]
+        // /register <username> <email> <display_name> <password>
         dispatcher.register(Commands.literal("register")
-                .executes(AuthCommands::registerCode)
+                .then(Commands.argument("username", StringArgumentType.word())
+                .then(Commands.argument("email", StringArgumentType.word())
+                .then(Commands.argument("display_name", StringArgumentType.word())
                 .then(Commands.argument("password", StringArgumentType.greedyString())
-                        .executes(AuthCommands::registerWithPassword)));
+                        .executes(AuthCommands::registerWithDetails))))));
+
+        // /link - generate a code to link to an existing account on the website
+        dispatcher.register(Commands.literal("link")
+                .executes(AuthCommands::registerCode));
 
         // /login <password>
         dispatcher.register(Commands.literal("login")
@@ -62,12 +68,57 @@ public class AuthCommands {
                                         .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                                                 Component.literal("Open website"))));
                         player.sendSystemMessage(link);
-                        player.sendSystemMessage(Component.literal("§7Or use: §e/register <password>"));
+                        player.sendSystemMessage(Component.literal("§7Or use: §e/register <Username> <Email> <DisplayName> <Password>"));
                     } else if (response.already_registered) {
                         player.sendSystemMessage(Component.literal("§eAlready registered! Use §a/login <password>"));
                     } else {
                         player.sendSystemMessage(Component.literal("§cRegistration failed: "
                                 + (response.error != null ? response.error : "Unknown error")));
+                    }
+                });
+
+        return 1;
+    }
+
+    private static int registerWithDetails(CommandContext<CommandSourceStack> ctx) {
+        if (!(ctx.getSource().getEntity() instanceof ServerPlayer player)) {
+            ctx.getSource().sendFailure(Component.literal("§cPlayers only"));
+            return 0;
+        }
+
+        if (AuthenticationManager.isAuthenticated(player.getUUID())) {
+            player.sendSystemMessage(Component.literal(AuthConfig.CONFIG.ALREADY_AUTHENTICATED_MESSAGE.get()));
+            return 0;
+        }
+
+        String platformUsername = StringArgumentType.getString(ctx, "username");
+        String email = StringArgumentType.getString(ctx, "email");
+        String displayName = StringArgumentType.getString(ctx, "display_name");
+        String password = StringArgumentType.getString(ctx, "password");
+        
+        String mcUsername = player.getName().getString();
+        String uuid = player.getUUID().toString();
+
+        player.sendSystemMessage(Component.literal("§6⏳ §7Registering account..."));
+        AuthenticationManager.setPendingRegistration(player.getUUID());
+
+        VonixNetworkAPI.registerPlayerWithDetails(mcUsername, uuid, platformUsername, email, displayName, password)
+                .thenAccept(response -> {
+                    if (response.success) {
+                        AuthenticationManager.setAuthenticated(player.getUUID(), response.token);
+                        player.sendSystemMessage(Component.literal("§a§l✓ §7Account created! Welcome, §e" + platformUsername));
+
+                        if (response.user != null) {
+                            LuckPermsIntegration.synchronizeRank(player.getUUID(), response.user);
+                        }
+                    } else {
+                        String error = response.error != null ? response.error : "Unknown error";
+                        if (error.toLowerCase().contains("already registered")) {
+                            player.sendSystemMessage(
+                                    Component.literal("§eAlready registered! Use §a/login <password>"));
+                        } else {
+                            player.sendSystemMessage(Component.literal("§c§l✗ §7Registration failed: §c" + error));
+                        }
                     }
                 });
 

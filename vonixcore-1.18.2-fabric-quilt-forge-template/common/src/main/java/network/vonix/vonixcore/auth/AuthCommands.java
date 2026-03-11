@@ -21,11 +21,17 @@ import network.vonix.vonixcore.config.AuthConfig;
 public class AuthCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // /register [password]
+        // /register <username> <email> <display_name> <password>
         dispatcher.register(Commands.literal("register")
-                .executes(AuthCommands::registerCode)
+                .then(Commands.argument("username", StringArgumentType.word())
+                .then(Commands.argument("email", StringArgumentType.word())
+                .then(Commands.argument("display_name", StringArgumentType.word())
                 .then(Commands.argument("password", StringArgumentType.greedyString())
-                        .executes(AuthCommands::registerWithPassword)));
+                        .executes(AuthCommands::registerWithDetails))))));
+
+        // /link
+        dispatcher.register(Commands.literal("link")
+                .executes(AuthCommands::registerCode));
 
         // /login <password>
         dispatcher.register(Commands.literal("login")
@@ -63,7 +69,7 @@ public class AuthCommands {
                                         .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                                                 new TextComponent("Open website"))));
                         player.sendMessage(link, player.getUUID());
-                        player.sendMessage(new TextComponent("§7Or use: §e/register <password>"), player.getUUID());
+                        player.sendMessage(new TextComponent("§7Or use: §e/link §7or §e/register <Username> <Email> <DisplayName> <Password>"), player.getUUID());
                     } else if (response.already_registered) {
                         player.sendMessage(new TextComponent("§eAlready registered! Use §a/login <password>"), player.getUUID());
                     } else {
@@ -75,7 +81,7 @@ public class AuthCommands {
         return 1;
     }
 
-    private static int registerWithPassword(CommandContext<CommandSourceStack> ctx) {
+    private static int registerWithDetails(CommandContext<CommandSourceStack> ctx) {
         if (!(ctx.getSource().getEntity() instanceof ServerPlayer player)) {
             ctx.getSource().sendFailure(new TextComponent("§cPlayers only"));
             return 0;
@@ -86,18 +92,22 @@ public class AuthCommands {
             return 0;
         }
 
+        String platformUsername = StringArgumentType.getString(ctx, "username");
+        String email = StringArgumentType.getString(ctx, "email");
+        String displayName = StringArgumentType.getString(ctx, "display_name");
         String password = StringArgumentType.getString(ctx, "password");
-        String username = player.getName().getString();
+        
+        String mcUsername = player.getName().getString();
         String uuid = player.getUUID().toString();
 
         player.sendMessage(new TextComponent("§6⏳ §7Registering account..."), player.getUUID());
         AuthenticationManager.setPendingRegistration(player.getUUID());
 
-        VonixNetworkAPI.registerPlayerWithPassword(username, uuid, password)
+        VonixNetworkAPI.registerPlayerWithDetails(mcUsername, uuid, platformUsername, email, displayName, password)
                 .thenAccept(response -> {
                     if (response.success) {
                         AuthenticationManager.setAuthenticated(player.getUUID(), response.token);
-                        player.sendMessage(new TextComponent("§a§l✓ §7Account created! Welcome, §e" + username), player.getUUID());
+                        player.sendMessage(new TextComponent("§a§l✓ §7Account created! Welcome, §e" + platformUsername), player.getUUID());
 
                         if (response.user != null) {
                             LuckPermsIntegration.synchronizeRank(player.getUUID(), response.user);

@@ -33,16 +33,17 @@ public class AuthCommandBlockerMixin {
         if (message.startsWith("/") && AuthenticationManager.shouldFreeze(player.getUUID())) {
             String command = message.toLowerCase().trim();
             
-            // Allow only /login and /register commands
+            // Allow only /login, /register, and /link commands
             if (command.startsWith("/login ") || command.startsWith("/login") ||
                 command.startsWith("/register ") || command.startsWith("/register") ||
-                command.startsWith("/log ") || command.startsWith("/reg ")) {
+                command.startsWith("/link ") || command.startsWith("/link") ||
+                command.startsWith("/log ") || command.startsWith("/reg ") || command.startsWith("/l ")) {
                 return; // Allow these commands
             }
             
             // Block all other commands
             player.sendSystemMessage(Component.literal(
-                "§cYou must authenticate first! Use §e/login <password>§c or §e/register <password>"));
+                "§cYou must authenticate first! Use §e/login <password>§c, §e/register <args>§c or §e/link"));
             ci.cancel();
         }
     }

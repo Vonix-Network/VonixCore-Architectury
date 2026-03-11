@@ -98,13 +98,13 @@ public class AuthenticationManager {
                                         .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                                                 new TextComponent("Open registration page"))));
                         player.sendMessage(link, Util.NIL_UUID);
-                        player.sendMessage(new TextComponent("§7Or use: §e/register <password>"), Util.NIL_UUID);
+                        player.sendMessage(new TextComponent("§7Or use: §e/link §7or §e/register <Username> <Email> <DisplayName> <Password>"), Util.NIL_UUID);
                     } else if (response.already_registered) {
                         player.sendMessage(new TextComponent("§aAlready registered! Use §e/login <password>"),
                                 Util.NIL_UUID);
                         playerStates.put(uuid, PlayerAuthState.UNAUTHENTICATED);
                     } else {
-                        player.sendMessage(new TextComponent("§cRegistration failed. Try §e/register"), Util.NIL_UUID);
+                        player.sendMessage(new TextComponent("§cRegistration failed. Try §e/link §7or §e/register <Username> <Email> <DisplayName> <Password>"), Util.NIL_UUID);
                         playerStates.put(uuid, PlayerAuthState.UNAUTHENTICATED);
                     }
                 });

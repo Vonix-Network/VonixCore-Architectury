@@ -138,7 +138,7 @@ public class AuthEventHandler {
                  
                  String command = parseResults.getReader().getString().toLowerCase();
                  if (!command.startsWith("login") && !command.startsWith("register")) {
-                     player.sendSystemMessage(Component.literal("§cYou must authenticate first! Use §e/login <password>§c or §e/register"));
+                     player.sendSystemMessage(Component.literal("§cYou must authenticate first! Use §e/login <password>§c or §e/register <Username> <Email> <DisplayName> <Password>"));
                      return EventResult.interruptFalse();
                  }
              }

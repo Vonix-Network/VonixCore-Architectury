@@ -241,6 +241,54 @@ public class VonixNetworkAPI {
         });
     }
 
+    public static CompletableFuture<LoginResponse> registerPlayerWithDetails(String mcUsername, String uuid,
+            String platformUsername, String email, String displayName, String password) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(buildUrl("/ext/minecraft/minecraft/register-direct"))
+                        .openConnection();
+                configureConnection(conn, "POST", true);
+
+                JsonObject body = new JsonObject();
+                body.addProperty("minecraft_username", mcUsername);
+                body.addProperty("minecraft_uuid", uuid);
+                body.addProperty("username", platformUsername);
+                body.addProperty("email", email);
+                body.addProperty("display_name", displayName);
+                body.addProperty("password", password);
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(GSON.toJson(body).getBytes(StandardCharsets.UTF_8));
+                }
+
+                int status = conn.getResponseCode();
+                String responseBody = readResponse(conn, status);
+                conn.disconnect();
+
+                if (status == 200 || status == 201)
+                    return GSON.fromJson(responseBody, LoginResponse.class);
+
+                LoginResponse err = new LoginResponse();
+                err.success = false;
+                err.error = parseError(responseBody, status);
+                return err;
+            } catch (IOException e) {
+                LoginResponse err = new LoginResponse();
+                err.success = false;
+                err.error = "Connection failed: " + e.getMessage();
+                return err;
+            }
+        }, API_EXECUTOR)
+        .orTimeout(12, TimeUnit.SECONDS)
+        .exceptionally(e -> {
+            VonixCore.LOGGER.warn("[VonixNetworkAPI] Detailed register request timed out or failed: {}", e.getMessage());
+            LoginResponse err = new LoginResponse();
+            err.success = false;
+            err.error = "Request timeout - please try again";
+            return err;
+        });
+    }
+
     public static CompletableFuture<RegistrationCheckResponse> checkPlayerRegistration(String username, String uuid) {
         return CompletableFuture.supplyAsync(() -> {
             try {

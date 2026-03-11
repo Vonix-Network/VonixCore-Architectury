@@ -18,6 +18,7 @@ import network.vonix.vonixcore.permissions.PermissionCommands;
 import network.vonix.vonixcore.permissions.PermissionManager;
 import network.vonix.vonixcore.platform.Platform;
 import network.vonix.vonixcore.teleport.TeleportManager;
+import network.vonix.vonixcore.auth.integrations.RankSyncHandler;
 
 import java.sql.Connection;
 
@@ -84,6 +85,9 @@ public class EssentialsEventHandler {
 
                 // Pre-load permission data
                 PermissionManager.getInstance().getUser(serverPlayer.getUUID());
+
+                // Auto-sync donation rank from website (works without login)
+                RankSyncHandler.syncOnJoin(serverPlayer.getUUID());
             }
         });
 

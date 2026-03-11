@@ -136,7 +136,7 @@ public class AuthEventHandler {
                     Long last = lastChatReminder.get(uuid);
                     if (last == null || (now - last) >= 5000) {
                         serverPlayer.sendSystemMessage(Component.literal(
-                            "§cYou must authenticate! Use §e/login <password>§c or §e/register <password>"));
+                            "§cYou must authenticate! Use §e/login <password>§c or §e/register <Username> <Email> <DisplayName> <Password>"));
                         lastChatReminder.put(uuid, now);
                     }
                     return EventResult.interruptFalse();
@@ -155,7 +155,7 @@ public class AuthEventHandler {
                  
                  String command = parseResults.getReader().getString().toLowerCase();
                  if (!command.startsWith("login") && !command.startsWith("register")) {
-                     player.sendSystemMessage(Component.literal("§cYou must authenticate first! Use §e/login <password>§c or §e/register"));
+                     player.sendSystemMessage(Component.literal("§cYou must authenticate first! Use §e/login <password>§c or §e/register <Username> <Email> <DisplayName> <Password>"));
                      return EventResult.interruptFalse();
                  }
              }
