@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] (All Versions) - 2026-03-12
+
+### Fixed
+- **1.18.2 Forge Chat Duplication**: Fixed an issue where the Architectury `ChatEvent.SERVER` handler was processing messages on Forge, resulting in duplicate chat entries (one formatted, one vanilla). The common handler now correctly defers to the Forge mixin for chat formatting, matching the behavior of later versions.
+- **Version bump** `1.5.0` -> `1.5.1`.
+
 ## [1.4.0] (All Versions) - 2026-02-19
 
 ### Added

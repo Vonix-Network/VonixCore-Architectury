@@ -66,10 +66,13 @@ public class EssentialsEventHandler {
         });
 
         // Chat Formatting - Architectury 4.x uses ChatEvent.SERVER
-        // On Fabric: Also handled by ServerGamePacketListenerMixin
-        // On Forge: Uses this event for custom formatting
+        // On Fabric: Handled by Fabric mixin (ServerGamePacketListenerMixin) to prevent duplicates
+        // On Forge: Handled by Forge mixin (ServerGamePacketListenerMixin) to prevent duplicates
+        // On Quilt: Handled here via Architectury event
         ChatEvent.SERVER.register((player, message, chatComponent) -> {
-            if (network.vonix.vonixcore.platform.Platform.isFabric()) {
+            // Skip if platform has a mixin handling chat (Fabric and Forge)
+            if (network.vonix.vonixcore.platform.Platform.isFabric() ||
+                    network.vonix.vonixcore.platform.Platform.isForge()) {
                 return EventResult.pass();
             }
 

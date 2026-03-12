@@ -20,6 +20,6 @@ public class VonixCoreForge {
         MinecraftForge.EVENT_BUS.register(this);
     }
 
-    // Chat handling is now done via Architectury ChatEvent.RECEIVED in common
-    // EssentialsEventHandler
+    // Chat handling is done via Forge mixin (ServerGamePacketListenerMixin)
+    // to intercept at HEAD and cancel vanilla broadcast before it happens
 }
