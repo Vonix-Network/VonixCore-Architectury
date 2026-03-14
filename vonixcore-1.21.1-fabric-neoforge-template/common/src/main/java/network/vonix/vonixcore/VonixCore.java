@@ -15,7 +15,7 @@ import network.vonix.vonixcore.permissions.PermissionManager;
 import network.vonix.vonixcore.platform.Platform;
 import network.vonix.vonixcore.teleport.TeleportManager;
 import network.vonix.vonixcore.warps.WarpManager;
-import network.vonix.vonixcore.xpsync.XPSyncManager;
+import network.vonix.vonixcore.statssync.StatsSyncManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,12 +39,12 @@ public class VonixCore {
     private static VonixCore instance;
     private net.minecraft.server.MinecraftServer server;
     private Database database;
-    private XPSyncManager xpSyncManager;
+    private StatsSyncManager statsSyncManager;
 
     // Track enabled modules
     private boolean essentialsEnabled = false;
     private boolean discordEnabled = false;
-    private boolean xpsyncEnabled = false;
+    private boolean statssyncEnabled = false;
 
     // Executor service for async operations
     public static final ExecutorService ASYNC_EXECUTOR = new ThreadPoolExecutor(
@@ -104,7 +104,7 @@ public class VonixCore {
              // SimpleConfigManager.save(discordConfigPath, DiscordConfig.SPEC); // Assuming such method exists or is internal
         }
         
-        SimpleConfigManager.load(configDir.resolve("vonixcore-xpsync.json"), XPSyncConfig.SPEC);
+        SimpleConfigManager.load(configDir.resolve("vonixcore-statssync.json"), StatsSyncConfig.SPEC);
         SimpleConfigManager.load(configDir.resolve("vonixcore-auth.json"), AuthConfig.SPEC);
 
         LifecycleEvent.SERVER_STARTING.register(this::onServerStarting);
@@ -193,20 +193,20 @@ public class VonixCore {
             LOGGER.warn("[{}] Cannot enable Essentials - database not available", MOD_NAME);
         }
 
-        // Initialize XPSync module
-        if (XPSyncConfig.CONFIG.enabled.get()) {
-            String apiKey = XPSyncConfig.CONFIG.apiKey.get();
+        // Initialize StatsSync module
+        if (StatsSyncConfig.CONFIG.enabled.get()) {
+            String apiKey = StatsSyncConfig.CONFIG.apiKey.get();
             if (apiKey == null || apiKey.isEmpty() || apiKey.equals("YOUR_API_KEY_HERE")) {
-                LOGGER.warn("[{}] XPSync is enabled but API key not configured", MOD_NAME);
+                LOGGER.warn("[{}] StatsSync is enabled but API key not configured", MOD_NAME);
             } else {
                 try {
-                    xpSyncManager = new XPSyncManager(server);
-                    xpSyncManager.start();
-                    xpsyncEnabled = true;
-                    enabledModules.add("XPSync");
-                    LOGGER.info("[{}] XPSync module enabled", MOD_NAME);
+                    statsSyncManager = new StatsSyncManager(server);
+                    statsSyncManager.start();
+                    statssyncEnabled = true;
+                    enabledModules.add("StatsSync");
+                    LOGGER.info("[{}] StatsSync module enabled", MOD_NAME);
                 } catch (Exception e) {
-                    LOGGER.error("[{}] Failed to initialize XPSync: {}", MOD_NAME, e.getMessage());
+                    LOGGER.error("[{}] Failed to initialize StatsSync: {}", MOD_NAME, e.getMessage());
                 }
             }
         }
@@ -254,14 +254,14 @@ public class VonixCore {
             }
         }
 
-        // Shutdown XPSync
-        if (xpsyncEnabled && xpSyncManager != null) {
+        // Shutdown StatsSync
+        if (statssyncEnabled && statsSyncManager != null) {
             try {
-                xpSyncManager.stop();
-                xpSyncManager = null;
-                LOGGER.debug("[{}] XPSync shutdown complete", MOD_NAME);
+                statsSyncManager.stop();
+                statsSyncManager = null;
+                LOGGER.debug("[{}] StatsSync shutdown complete", MOD_NAME);
             } catch (Throwable e) {
-                LOGGER.error("[{}] Error during XPSync shutdown", MOD_NAME, e);
+                LOGGER.error("[{}] Error during StatsSync shutdown", MOD_NAME, e);
             }
         }
 

@@ -11,11 +11,11 @@ import network.vonix.vonixcore.database.Database;
 import network.vonix.vonixcore.discord.DiscordManager;
 import network.vonix.vonixcore.homes.HomeManager;
 import network.vonix.vonixcore.kits.KitManager;
+import network.vonix.vonixcore.permissions.PermissionManager;
 import network.vonix.vonixcore.platform.Platform;
 import network.vonix.vonixcore.teleport.TeleportManager;
 import network.vonix.vonixcore.warps.WarpManager;
-import network.vonix.vonixcore.xpsync.XPSyncManager;
-import network.vonix.vonixcore.permissions.PermissionManager;
+import network.vonix.vonixcore.statssync.StatsSyncManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,12 +39,12 @@ public class VonixCore {
     private static VonixCore instance;
     private net.minecraft.server.MinecraftServer server;
     private Database database;
-    private XPSyncManager xpSyncManager;
+    private StatsSyncManager statsSyncManager;
 
     // Track enabled modules
     private boolean essentialsEnabled = false;
     private boolean discordEnabled = false;
-    private boolean xpsyncEnabled = false;
+    private boolean statssyncEnabled = false;
 
     // Executor service for async operations
     public static final ExecutorService ASYNC_EXECUTOR = new ThreadPoolExecutor(
@@ -55,7 +55,8 @@ public class VonixCore {
                 t.setDaemon(true);
                 return t;
             },
-            new ThreadPoolExecutor.CallerRunsPolicy());
+            new ThreadPoolExecutor.CallerRunsPolicy()
+    );
 
     public static void init() {
         instance = new VonixCore();
@@ -88,20 +89,34 @@ public class VonixCore {
         Path configDir = Platform.getConfigDirectory();
         SimpleConfigManager.load(configDir.resolve("vonixcore-database.json"), DatabaseConfig.SPEC);
         SimpleConfigManager.load(configDir.resolve("vonixcore-essentials.json"), EssentialsConfig.SPEC);
-        SimpleConfigManager.load(configDir.resolve("vonixcore-discord.json"), DiscordConfig.SPEC);
-        SimpleConfigManager.load(configDir.resolve("vonixcore-xpsync.json"), XPSyncConfig.SPEC);
+        
+        // Load Discord config and ensure it exists
+        Path discordConfigPath = configDir.resolve("vonixcore-discord.json");
+        LOGGER.info("[{}] Checking for Discord config at: {}", MOD_NAME, discordConfigPath.toAbsolutePath());
+        
+        SimpleConfigManager.load(discordConfigPath, DiscordConfig.SPEC);
+        
+        if (discordConfigPath.toFile().exists()) {
+             LOGGER.info("[{}] Discord config file found and loaded.", MOD_NAME);
+        } else {
+             LOGGER.warn("[{}] Discord config file NOT found after load attempt! Attempting to force save defaults...", MOD_NAME);
+             // Force save if not exists (though SimpleConfigManager should handle this)
+             // SimpleConfigManager.save(discordConfigPath, DiscordConfig.SPEC); // Assuming such method exists or is internal
+        }
+        
+        SimpleConfigManager.load(configDir.resolve("vonixcore-statssync.json"), StatsSyncConfig.SPEC);
         SimpleConfigManager.load(configDir.resolve("vonixcore-auth.json"), AuthConfig.SPEC);
 
         LifecycleEvent.SERVER_STARTING.register(this::onServerStarting);
         LifecycleEvent.SERVER_STARTED.register(this::onServerStarted);
         LifecycleEvent.SERVER_STOPPING.register(this::onServerStopping);
-
+        
         // Register Discord events
         network.vonix.vonixcore.discord.DiscordEventHandler.register();
-
+        
         // Register Essentials events
         network.vonix.vonixcore.listener.EssentialsEventHandler.init();
-
+        
         // Register Auth events and initialize freeze cache
         network.vonix.vonixcore.auth.events.AuthEventHandler.init();
         network.vonix.vonixcore.auth.AuthenticationManager.updateFreezeCache();
@@ -116,15 +131,14 @@ public class VonixCore {
         try {
             database = new Database(server);
             // Use async initialization with timeout to prevent server startup hangs
-            java.util.concurrent.CompletableFuture<Void> dbInitFuture = java.util.concurrent.CompletableFuture
-                    .runAsync(() -> {
-                        try {
-                            database.initialize();
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    }, ASYNC_EXECUTOR);
-
+            java.util.concurrent.CompletableFuture<Void> dbInitFuture = java.util.concurrent.CompletableFuture.runAsync(() -> {
+                try {
+                    database.initialize();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }, ASYNC_EXECUTOR);
+            
             // Wait for database initialization with timeout
             dbInitFuture.get(15, TimeUnit.SECONDS);
             LOGGER.info("[{}] Database initialized", MOD_NAME);
@@ -179,20 +193,20 @@ public class VonixCore {
             LOGGER.warn("[{}] Cannot enable Essentials - database not available", MOD_NAME);
         }
 
-        // Initialize XPSync module
-        if (XPSyncConfig.CONFIG.enabled.get()) {
-            String apiKey = XPSyncConfig.CONFIG.apiKey.get();
+        // Initialize StatsSync module
+        if (StatsSyncConfig.CONFIG.enabled.get()) {
+            String apiKey = StatsSyncConfig.CONFIG.apiKey.get();
             if (apiKey == null || apiKey.isEmpty() || apiKey.equals("YOUR_API_KEY_HERE")) {
-                LOGGER.warn("[{}] XPSync is enabled but API key not configured", MOD_NAME);
+                LOGGER.warn("[{}] StatsSync is enabled but API key not configured", MOD_NAME);
             } else {
                 try {
-                    xpSyncManager = new XPSyncManager(server);
-                    xpSyncManager.start();
-                    xpsyncEnabled = true;
-                    enabledModules.add("XPSync");
-                    LOGGER.info("[{}] XPSync module enabled", MOD_NAME);
+                    statsSyncManager = new StatsSyncManager(server);
+                    statsSyncManager.start();
+                    statssyncEnabled = true;
+                    enabledModules.add("StatsSync");
+                    LOGGER.info("[{}] StatsSync module enabled", MOD_NAME);
                 } catch (Exception e) {
-                    LOGGER.error("[{}] Failed to initialize XPSync: {}", MOD_NAME, e.getMessage());
+                    LOGGER.error("[{}] Failed to initialize StatsSync: {}", MOD_NAME, e.getMessage());
                 }
             }
         }
@@ -210,11 +224,10 @@ public class VonixCore {
         if (DiscordConfig.CONFIG.enabled.get()) {
             try {
                 // Initialize with timeout protection to prevent hanging server startup
-                java.util.concurrent.CompletableFuture<Void> discordInitFuture = java.util.concurrent.CompletableFuture
-                        .runAsync(() -> {
-                            DiscordManager.getInstance().initialize(server);
-                        }, ASYNC_EXECUTOR);
-
+                java.util.concurrent.CompletableFuture<Void> discordInitFuture = java.util.concurrent.CompletableFuture.runAsync(() -> {
+                    DiscordManager.getInstance().initialize(server);
+                }, ASYNC_EXECUTOR);
+                
                 // Wait max 10 seconds for Discord initialization
                 discordInitFuture.get(10, TimeUnit.SECONDS);
                 discordEnabled = true;
@@ -241,14 +254,14 @@ public class VonixCore {
             }
         }
 
-        // Shutdown XPSync
-        if (xpsyncEnabled && xpSyncManager != null) {
+        // Shutdown StatsSync
+        if (statssyncEnabled && statsSyncManager != null) {
             try {
-                xpSyncManager.stop();
-                xpSyncManager = null;
-                LOGGER.debug("[{}] XPSync shutdown complete", MOD_NAME);
+                statsSyncManager.stop();
+                statsSyncManager = null;
+                LOGGER.debug("[{}] StatsSync shutdown complete", MOD_NAME);
             } catch (Throwable e) {
-                LOGGER.error("[{}] Error during XPSync shutdown", MOD_NAME, e);
+                LOGGER.error("[{}] Error during StatsSync shutdown", MOD_NAME, e);
             }
         }
 
